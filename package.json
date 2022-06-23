@@ -15,6 +15,7 @@
     "dayjs": "^1.11.3",
     "imdb-api": "^4.4.1",
     "moviedb-promise": "^3.1.15",
+    "nodejs-web-scraper": "^6.1.0",
     "pinia": "^2.0.14",
     "quasar": "^2.0.0",
     "stream-browserify": "^3.0.0",

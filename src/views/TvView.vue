@@ -24,6 +24,7 @@
 import { ref } from 'vue';
 import { useStore } from '@/store/index';
 import CardContainer from '@/components/CardContainer.vue';
+// import { Scraper, CollectContent } from 'nodejs-web-scraper';
 import trakt from '../api/trakt';
 import { getEpisodeInfo, getShowInfo } from '../api/tmdb';
 
@@ -40,9 +41,17 @@ export default {
       filter: ref('history'),
       mType: ref(null),
       loaded: ref(false),
+      myRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-ratings'))),
+      // scraper: ref(null),
+      // scraperConfig: ref({
+      //   baseSiteUrl: 'https://imdb.com',
+      //   startUrl: 'https://www.imdb.com/title/',
+      //   maxRetries: 3,
+      // }),
     };
   },
   async created() {
+    // this.scraper = new Scraper(this.scraperConfig);
     this.store.$subscribe((mutated, state) => {
       this.filter = state.filter;
       this.loadData();
@@ -68,24 +77,41 @@ export default {
   methods: {
     async loadData() {
       this.loaded = false;
+
       switch (this.filter) {
         case 'history':
           console.log('load history');
           this.data = await trakt.getHistoryEpisodes(this.page);
+          trakt.getMyEpisodeRatings(1).then((ratings) => {
+            const storedRatings = JSON.parse(localStorage.getItem('trakt-vue-ratings'));
+            if (storedRatings?.lastModified !== ratings.lastModified) {
+              this.myRatings = { ...ratings };
+              console.log('getting the big ass rating object');
+              trakt.getMyEpisodeRatings().then((remainingRatings) => {
+                this.myRatings = { ...this.myRatings, ...remainingRatings };
+                localStorage.setItem('trakt-vue-ratings', JSON.stringify(this.myRatings));
+              });
+            }
+          });
           this.mType = 'episode';
           break;
+
         case 'recommended':
           console.log('load recommended');
           this.data = await trakt.getRecommendationsFromMe('shows', this.page);
           this.mType = 'show';
           break;
+
         default:
           this.data = null;
       }
+
       for (let i = 0; i < this.data?.items.length; i += 1) {
         const data = this.data.items[i];
         data.loaded = false;
         if (this.mType === 'episode') {
+          // this.scraperConfig.startUrl = `${this.scraperConfig.startUrl}${data.episode.ids.imdb}`;
+          // data.imdb_rating = new CollectContent('.details-desc a.tel', { name: 'phone' });
           // get background image for episode
           getEpisodeInfo(data.show.ids, data.episode.season, data.episode.number).then(
             async (info) => {
@@ -99,6 +125,9 @@ export default {
               );
             },
           );
+          data.my_rating = this.myRatings.ratings.find(
+            (rating) => rating.episode.ids.tmdb === data.episode.ids.tmdb,
+          );
         } else {
           getShowInfo(data.show.ids).then(async (info) => {
             data.backdrop = info.image;
@@ -108,6 +137,7 @@ export default {
             data.trakt_rating = await trakt.getShowRating(data.show.ids.trakt);
           });
         }
+        // data.imdb_rating = new CollectContent('.details-desc a.tel', { name: 'phone' });
         this.loaded = true;
       }
     },

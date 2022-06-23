@@ -8,7 +8,10 @@
         :options="options"
         label="Filter"
         color="secondary"
-        class="text-white"
+        label-color="secondary"
+        bg-color="dark"
+        class="text-white filter-select"
+        input-class="penis"
         dark
         @update:model-value="changeFilter"
       />
@@ -27,8 +30,8 @@ export default {
   name: 'HeaderBar',
   props: {
     page: {
-      type: Number,
-      default: 1,
+      type: String,
+      default: '1',
     },
   },
   setup() {
@@ -50,5 +53,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped></style>

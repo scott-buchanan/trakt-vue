@@ -9,7 +9,7 @@
         no-spinner
         :src="item.backdrop"
         :alt="mType === 'episode' ? item.episode.title : item.show.title"
-        fit="contain"
+        fit="cover"
         :ratio="16 / 9"
       >
         <div class="rating absolute-top-right">
@@ -23,6 +23,12 @@
               alt="The Movie DB"
             />
             <span>{{ item.tmdb_rating }}</span>
+          </div>
+          <div v-if="item.my_rating">
+            <q-avatar size="20px" class="block">
+              <img src="@/assets/me.jpg" alt="Scott Buchanan" />
+            </q-avatar>
+            <span>{{ item.my_rating.rating }}</span>
           </div>
         </div>
         <div
@@ -43,12 +49,17 @@
           </div>
           <div v-if="mType === 'episode'" class="title">
             <div>
-              <b>{{ item.episode.season }}x{{ item.episode.number }}</b>
+              <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
               {{ item.episode.title }}
             </div>
             <div class="watched-time">
-              <span><q-icon name="o_watch_later" /></span>
+              <span>
+                <q-icon name="o_watch_later" />
+              </span>
               <span>{{ formattedDate(item.watched_at) }}</span>
+              <q-tooltip :delay="500" :offset="[0, 5]">
+                Watched on {{ formattedDateTime(item.watched_at) }}
+              </q-tooltip>
             </div>
           </div>
           <div v-else class="text-right">
@@ -82,13 +93,12 @@ export default {
       default: 'show',
     },
   },
-  created() {
-    console.log(this.data.items[0]);
-  },
   methods: {
     formattedDate(wDate) {
-      console.log(wDate);
       return dayjs(wDate).format('MMM DD, YYYY');
+    },
+    formattedDateTime(wDate) {
+      return `${dayjs(wDate).format('MMM DD, YYYY')} at ${dayjs(wDate).format('h:mma')}`;
     },
   },
 };
@@ -111,6 +121,7 @@ export default {
 }
 .clearlogo {
   width: 100px;
+  height: 39px;
 }
 .clearlogoNoImg {
   height: 39px;
@@ -118,12 +129,16 @@ export default {
 .rating {
   padding: 10px;
   & > div:first-child {
-    margin-bottom: 5px;
+    margin-top: 0;
+  }
+  & > div {
+    margin-top: 5px;
   }
   text-align: center;
   & > div > img {
     width: 20px;
     display: block;
+    margin: 0 auto;
   }
 }
 .tags {

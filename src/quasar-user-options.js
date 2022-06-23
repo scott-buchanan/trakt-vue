@@ -9,9 +9,7 @@ export default {
       primary: '#14213D',
       secondary: '#FCA311',
       accent: '#e5e5e5',
-
       dark: '#000',
-
       positive: '#21BA45',
       negative: '#C10015',
       info: '#31CCEC',

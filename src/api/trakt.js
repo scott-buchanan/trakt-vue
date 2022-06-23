@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const uName = localStorage.getItem('trakt-vue-username');
+
 const functions = {
   getToken: async (code) => {
     const data = await axios({
@@ -20,7 +22,7 @@ const functions = {
     // no pagination available for this
     const response = await axios({
       method: 'GET',
-      url: 'https://api.trakt.tv/users/bukes/collection/shows',
+      url: `https://api.trakt.tv/users/${uName}/collection/shows`,
       headers: {
         'Content-Type': 'application/json',
         'trakt-api-version': '2',
@@ -56,7 +58,7 @@ const functions = {
   getHistoryEpisodes: async (page = 1) => {
     const response = await axios({
       method: 'GET',
-      url: `https://api.trakt.tv/users/bukes/history/episodes?limit=20&page=${page}`,
+      url: `https://api.trakt.tv/users/${uName}/history/episodes?limit=21&page=${page}`,
       headers: {
         'Content-Type': 'application/json',
         'trakt-api-version': '2',
@@ -75,7 +77,7 @@ const functions = {
   getRecommendationsFromMe: async (rType, page) => {
     const response = await axios({
       method: 'GET',
-      url: `https://api.trakt.tv/users/bukes/recommendations/${rType}/rank&page=${page}`,
+      url: `https://api.trakt.tv/users/${uName}/recommendations/${rType}/rank&page=${page}`,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${localStorage.getItem('trakt-vue-token')}`,
@@ -88,6 +90,39 @@ const functions = {
       page: parseInt(response.headers['x-pagination-page'], 10),
       pagesTotal: parseInt(response.headers['x-pagination-page-count'], 10),
     };
+  },
+  getMyEpisodeRatings: async (page) => {
+    const url = page
+      ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=100&page=${page}`
+      : `https://api.trakt.tv/users/${uName}/ratings/episodes`;
+    const response = await axios({
+      method: 'GET',
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'trakt-api-version': '2',
+        'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+      },
+    });
+    const ratings = {
+      lastModified: response.headers['last-modified'],
+      ratings: response.data,
+    };
+    console.log(ratings);
+    return ratings;
+  },
+  getTraktSettings: async () => {
+    const response = await axios({
+      method: 'GET',
+      url: 'https://api.trakt.tv/users/settings',
+      headers: {
+        'Content-Type': 'application/json',
+        'trakt-api-version': '2',
+        Authorization: `Bearer ${localStorage.getItem('trakt-vue-token')}`,
+        'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+      },
+    });
+    return response.data;
   },
 };
 
