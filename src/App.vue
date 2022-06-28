@@ -40,7 +40,11 @@
       >
         <div class="absolute-bottom bg-transparent">
           <q-avatar size="56px" class="q-mb-sm">
-            <img :src="myInfo?.user.images.avatar.full" :alt="myInfo?.user.name" />
+            <img
+              :src="myInfo?.user.images.avatar.full"
+              :alt="myInfo?.user.name"
+              referrerpolicy="no-referrer"
+            />
           </q-avatar>
           <div class="text-weight-bold">{{ myInfo?.user.name }}</div>
           <div>
@@ -91,7 +95,6 @@ export default {
   async created() {
     this.myInfo = await trakt.getTraktSettings();
     localStorage.setItem('trakt-vue-username', this.myInfo.user.username);
-    console.log(this.myInfo);
   },
   setup() {
     const data = useStore();

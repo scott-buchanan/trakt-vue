@@ -1,8 +1,8 @@
 <template>
-  <div class="row" v-if="data?.items.length > 0">
+  <div class="row" v-if="data?.length > 0">
     <div
       class="col-12 col-sm-6 col-xl-4 show-card"
-      v-for="item in data.items"
+      v-for="item in data"
       :key="mType === 'episode' ? item.episode.ids.trakt : item.show.ids.trakt"
     >
       <q-img
@@ -13,6 +13,10 @@
         :ratio="16 / 9"
       >
         <div class="rating absolute-top-right">
+          <div v-if="item.imdb_rating">
+            <img src="@/assets/imdb.svg" :alt="`IMDb rating ${item.imdb_rating}`" />
+            <span>{{ item.imdb_rating }}</span>
+          </div>
           <div v-if="item.trakt_rating && item.trakt_rating !== '0.0'">
             <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
             <span>{{ item.trakt_rating }}</span>
@@ -44,14 +48,12 @@
           <div v-if="item.clear_logo" class="clearlogo">
             <q-img no-spinner :src="item.clear_logo" fit="cover" alt="" />
           </div>
-          <div v-show="!item.clear_logo" class="clearlogoNoImg flex items-center">
+          <div v-else class="clearlogoNoImg flex items-center">
             {{ item.show.title }}
           </div>
-          <div v-if="mType === 'episode'" class="title">
-            <div>
-              <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
-              {{ item.episode.title }}
-            </div>
+          <div v-if="mType === 'episode'" class="title q-pl-sm">
+            <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
+            {{ item.episode.title }}
             <div class="watched-time">
               <span>
                 <q-icon name="o_watch_later" />
@@ -85,13 +87,16 @@ export default {
   name: 'CardContainer',
   props: {
     data: {
-      type: Object,
-      default: () => {},
+      type: Array,
+      default: () => [],
     },
     mType: {
       type: String,
       default: 'show',
     },
+  },
+  created() {
+    console.log(this.data);
   },
   methods: {
     formattedDate(wDate) {
@@ -116,11 +121,14 @@ export default {
   text-transform: uppercase;
 }
 .caption > .title {
-  word-wrap: break-word;
   text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .clearlogo {
   width: 100px;
+  min-width: 100px;
   height: 39px;
 }
 .clearlogoNoImg {
