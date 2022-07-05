@@ -1,68 +1,88 @@
 import axios from 'axios';
-import fallback from '@/assets/fallback-tv.jpg';
-import getClearLogo from './fanart';
+import * as fallback from '@/assets/fallback-tv.jpg';
+import getImdbRating from '@/api/omdb';
+import { getClearLogo } from './fanart';
 import trakt from './trakt';
 
-export async function getSeasonImage(showId, seasonNumber) {
+export async function getAppBackgroundImg() {
+  const response = await axios({
+    method: 'GET',
+    url: 'https://api.themoviedb.org/3/trending/tv/day?api_key=89c6bd3331244e97eed61741fc798ab5',
+  });
+  const rando = Math.floor(Math.random() * response.data.results.length);
+  return `https://image.tmdb.org/t/p/original/${response.data.results[rando].backdrop_path}`;
+}
+
+export async function getSeasonPoster(showId, seasonNumber) {
   const response = await axios({
     method: 'GET',
     url: `https://api.themoviedb.org/3/tv/${showId}/season/${seasonNumber}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
   });
-  return `https://image.tmdb.org/t/p/original/${response.data.posters[0].file_path}`;
+  return `https://image.tmdb.org/t/p/w780/${response.data.posters[0].file_path}`;
 }
 
-export async function getShowImage(showId) {
+export async function getShowBackdrop(showId) {
   try {
     const response = await axios({
       method: 'GET',
       url: `https://api.themoviedb.org/3/tv/${showId}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
     });
-    return `https://image.tmdb.org/t/p/original/${response.data.backdrops[0].file_path}`;
+    return {
+      sm: `https://image.tmdb.org/t/p/w780/${response.data.backdrops[0].file_path}`,
+      lg: `https://image.tmdb.org/t/p/original/${response.data.backdrops[0].file_path}`,
+    };
   } catch (error) {
-    console.log(error);
-    return fallback; // eslint-disable-line
+    console.error(error);
+    return { sm: fallback.default, lg: fallback.default };
   }
 }
 
-async function getImdbRating(id) {
+export async function getEpisodeBackdrops(showId, season, episode) {
   try {
     const response = await axios({
       method: 'GET',
-      url: `http://www.omdbapi.com/?apikey=8b1738a&i=${id}`,
+      url: `https://api.themoviedb.org/3/tv/${showId}/season/${season}/episode/${episode}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
     });
-    return response.data.Ratings[0].Value.split('/')[0];
+    return response.data.stills;
   } catch (error) {
-    return null;
+    console.error(error);
+    return fallback.default;
   }
 }
 
-export async function getTMDBEpisodeInfo(show, episode) {
-  const returnVal = {};
+export async function getEpisodeInfo(show, episode) {
+  let returnVal;
+  let season;
+  if (episode.season > 1900) {
+    season = episode.season - show.year + 1;
+  } else {
+    season = episode.season;
+  }
   try {
     const response = await axios({
       method: 'GET',
-      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/season/${episode.season}/episode/${episode.number}?api_key=89c6bd3331244e97eed61741fc798ab5`,
+      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/season/${season}/episode/${episode.number}?api_key=89c6bd3331244e97eed61741fc798ab5`,
     });
-    returnVal.clear_logo = await getClearLogo(show.ids.tvdb);
-    returnVal.imdb_rating = await getImdbRating(episode.ids.imdb);
-    returnVal.trakt_rating = await trakt.getEpisodeRating(
-      show.ids.trakt,
-      episode.season,
-      episode.number,
-    );
-    if (!response.data.still_path) {
-      returnVal.backdrop = await getShowImage(show.ids.tmdb);
+    returnVal = response.data;
+    if (!returnVal.still_path) {
+      const result = await getShowBackdrop(show.ids.tmdb);
+      returnVal.backdrop_sm = result.sm;
+      returnVal.backdrop_lg = result.lg;
     } else {
-      returnVal.backdrop = `https://image.tmdb.org/t/p/original/${response.data.still_path}`;
+      returnVal.backdrop_sm = `https://image.tmdb.org/t/p/w780/${response.data.still_path}`;
+      returnVal.backdrop_lg = `https://image.tmdb.org/t/p/original/${response.data.still_path}`;
     }
+    [returnVal.clear_logo, returnVal.imdb_rating, returnVal.trakt_rating] = await Promise.all([
+      getClearLogo(show.ids.tvdb),
+      getImdbRating(episode.ids.imdb),
+      trakt.getEpisodeRating(show.ids.trakt, episode.season, episode.number),
+    ]);
     returnVal.tmdb_rating = response.data.vote_average.toFixed(1);
     return returnVal;
   } catch (error) {
-    console.log(error);
-    returnVal.clear_logo = await getClearLogo(show.ids.tvdb);
-    returnVal.backdrop = await getShowImage(show.ids.tmdb);
-    returnVal.imdb_rating = await getImdbRating(episode.ids.imdb);
-    return returnVal;
+    console.error(error);
+    const result = await getShowBackdrop(show.ids.tmdb);
+    return { backdrop_sm: result.sm, backdrop_lg: result.lg };
   }
 }
 
@@ -73,8 +93,7 @@ export async function getShowInfo(ids) {
   });
   const returnVal = { ...response.data };
   returnVal.clear_logo = getClearLogo(ids.tvdb);
-  // console.log(response.data);
-  returnVal.image = `https://image.tmdb.org/t/p/original/${
+  returnVal.image = `https://image.tmdb.org/t/p/w780/${
     response.data.backdrop_path ? response.data.backdrop_path : response.data.poster_path
   }`;
   getImdbRating(ids.imdb).then((rating) => {
@@ -82,4 +101,12 @@ export async function getShowInfo(ids) {
   });
   returnVal.tmdb_rating = response.data.vote_average.toFixed(1);
   return returnVal;
+}
+
+export async function getActorImage(tmdbId) {
+  const response = await axios({
+    method: 'GET',
+    url: `https://api.themoviedb.org/3/person/${tmdbId}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
+  });
+  return response.data;
 }

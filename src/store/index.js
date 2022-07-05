@@ -8,6 +8,7 @@ export const useStore = defineStore('main', {
     data: null,
     page: '1',
     filter: 'history',
+    loaded: false,
   }),
   actions: {
     updatePage(page) {
@@ -18,6 +19,9 @@ export const useStore = defineStore('main', {
     },
     updateFilter(filter) {
       this.filter = filter;
+    },
+    updateLoading(loaded) {
+      this.loaded = loaded;
     },
   },
 });

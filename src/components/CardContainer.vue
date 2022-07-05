@@ -1,83 +1,87 @@
 <template>
-  <div class="row" v-if="data?.length > 0">
-    <div
-      class="col-12 col-sm-6 col-xl-4 show-card"
-      v-for="item in data"
-      :key="mType === 'episode' ? item.episode.ids.trakt : item.show.ids.trakt"
-    >
-      <q-img
-        no-spinner
-        :src="item.backdrop"
-        :alt="mType === 'episode' ? item.episode.title : item.show.title"
-        fit="cover"
-        :ratio="16 / 9"
+  <q-scroll-area class="full-height full-width">
+    <div class="row" v-if="data?.length > 0">
+      <div
+        class="col-12 col-sm-6 col-xl-4 show-card"
+        v-for="item in data"
+        :key="mType === 'episode' ? item.episode.ids.trakt : item.show.ids.trakt"
+        @click="clickDetails(item)"
+        @keyDown="clickDetails(item)"
       >
-        <div class="rating absolute-top-right">
-          <div v-if="item.imdb_rating">
-            <img src="@/assets/imdb.svg" :alt="`IMDb rating ${item.imdb_rating}`" />
-            <span>{{ item.imdb_rating }}</span>
-          </div>
-          <div v-if="item.trakt_rating && item.trakt_rating !== '0.0'">
-            <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
-            <span>{{ item.trakt_rating }}</span>
-          </div>
-          <div v-if="item.tmdb_rating && item.tmdb_rating !== '0.0'">
-            <img
-              src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg"
-              alt="The Movie DB"
-            />
-            <span>{{ item.tmdb_rating }}</span>
-          </div>
-          <div v-if="item.my_rating">
-            <q-avatar size="20px" class="block">
-              <img src="@/assets/me.jpg" alt="Scott Buchanan" />
-            </q-avatar>
-            <span>{{ item.my_rating.rating }}</span>
-          </div>
-        </div>
-        <div
-          :class="[
-            'absolute-bottom',
-            'caption',
-            'flex',
-            'justify-between',
-            'items-center',
-            'no-wrap',
-          ]"
+        <q-img
+          no-spinner
+          :src="item.backdrop_sm"
+          :alt="mType === 'episode' ? item.episode.title : item.show.title"
+          fit="cover"
+          :ratio="16 / 9"
         >
-          <div v-if="item.clear_logo" class="clearlogo">
-            <q-img no-spinner :src="item.clear_logo" fit="cover" alt="" />
+          <div class="rating absolute-top-right">
+            <div v-if="item.imdb_rating">
+              <img src="@/assets/imdb.svg" :alt="`IMDb rating ${item.imdb_rating}`" />
+              <span>{{ item.imdb_rating }}</span>
+            </div>
+            <div v-if="item.trakt_rating && item.trakt_rating !== '0.0'">
+              <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
+              <span>{{ item.trakt_rating }}</span>
+            </div>
+            <div v-if="item.tmdb_rating && item.tmdb_rating !== '0.0'">
+              <img
+                src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg"
+                alt="The Movie DB"
+              />
+              <span>{{ item.tmdb_rating }}</span>
+            </div>
+            <div v-if="item.my_rating">
+              <q-avatar size="20px" class="block">
+                <img src="@/assets/me.jpg" alt="Scott Buchanan" />
+              </q-avatar>
+              <span>{{ item.my_rating.rating }}</span>
+            </div>
           </div>
-          <div v-else class="clearlogoNoImg flex items-center">
-            {{ item.show.title }}
-          </div>
-          <div v-if="mType === 'episode'" class="title q-pl-sm">
-            <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
-            {{ item.episode.title }}
-            <div class="watched-time">
-              <span>
-                <q-icon name="o_watch_later" />
+          <div
+            :class="[
+              'absolute-bottom',
+              'caption',
+              'flex',
+              'justify-between',
+              'items-center',
+              'no-wrap',
+            ]"
+          >
+            <div v-if="item.clear_logo" class="clearlogo">
+              <q-img no-spinner :src="item.clear_logo" fit="cover" alt="" />
+            </div>
+            <div v-else class="clearlogoNoImg flex items-center">
+              {{ item.show.title }}
+            </div>
+            <div v-if="mType === 'episode'" class="title q-pl-sm">
+              <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
+              {{ item.episode.title }}
+              <div class="watched-time">
+                <span>
+                  <q-icon name="o_watch_later" />
+                </span>
+                <span>{{ formattedDate(item.watched_at) }}</span>
+                <q-tooltip :delay="500" :offset="[0, 5]">
+                  Watched on {{ formattedDateTime(item.watched_at) }}
+                </q-tooltip>
+              </div>
+            </div>
+            <div v-else class="text-right">
+              <div>
+                <b>{{ item.show.year }}</b>
+              </div>
+              <span class="tags" v-for="genre in item.genres" :key="genre.id">
+                <q-badge color="secondary" class="text-dark">
+                  {{ genre.name }}
+                </q-badge>
               </span>
-              <span>{{ formattedDate(item.watched_at) }}</span>
-              <q-tooltip :delay="500" :offset="[0, 5]">
-                Watched on {{ formattedDateTime(item.watched_at) }}
-              </q-tooltip>
             </div>
           </div>
-          <div v-else class="text-right">
-            <div>
-              <b>{{ item.show.year }}</b>
-            </div>
-            <span class="tags" v-for="genre in item.genres" :key="genre.id">
-              <q-badge color="secondary" class="text-dark">
-                {{ genre.name }}
-              </q-badge>
-            </span>
-          </div>
-        </div>
-      </q-img>
+        </q-img>
+      </div>
     </div>
-  </div>
+  </q-scroll-area>
 </template>
 
 <script>
@@ -95,9 +99,6 @@ export default {
       default: 'show',
     },
   },
-  created() {
-    console.log(this.data);
-  },
   methods: {
     formattedDate(wDate) {
       return dayjs(wDate).format('MMM DD, YYYY');
@@ -105,12 +106,25 @@ export default {
     formattedDateTime(wDate) {
       return `${dayjs(wDate).format('MMM DD, YYYY')} at ${dayjs(wDate).format('h:mma')}`;
     },
+    clickDetails(item) {
+      const urlTitle = item.show.title
+        .replace(/[^a-zA-Z ]/g, '')
+        .replace(/\s/g, '-')
+        .toLowerCase();
+      sessionStorage.setItem('trakt-vue-current-item', JSON.stringify(item));
+      this.$router.push({
+        name: 'details',
+        params: { show: urlTitle, season: item.episode.season, episode: item.episode.number },
+        props: { data: item },
+      });
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
 .show-card {
+  cursor: pointer;
   position: relative;
   & > img {
     width: 100%;

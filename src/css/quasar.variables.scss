@@ -8,3 +8,10 @@ $positive: "#21BA45";
 $negative: "#C10;015";
 $info: "#31CCEC";
 $warning: "#F2C037";
+
+$opacity-back: 0.5;
+
+@mixin background-style {
+  border-radius: 5px;
+  background: rgba(0, 0, 0, $opacity-back);
+}

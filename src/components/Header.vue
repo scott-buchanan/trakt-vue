@@ -1,30 +1,25 @@
 <template>
-  <q-header reveal elevated class="bg-dark text-white" height-hint="98">
-    <q-toolbar>
+  <q-header reveal height-hint="98" class="header">
+    <q-toolbar class="flex">
       <q-select
         v-model="model"
         dense
-        outlined
         :options="options"
         label="Filter"
         color="secondary"
-        label-color="secondary"
-        bg-color="dark"
-        class="text-white filter-select"
-        input-class="penis"
+        label-color="white"
+        class="filter-select"
         dark
         @update:model-value="changeFilter"
       />
+      <div class="col-grow"></div>
     </q-toolbar>
   </q-header>
 </template>
 
-<style></style>
-
 <script>
 import { ref } from 'vue';
 import { useStore } from '@/store/index';
-// import trakt from '../api/trakt';
 
 export default {
   name: 'HeaderBar',
@@ -53,3 +48,14 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+@import '@/css/quasar.variables.scss';
+.header {
+  padding: 5px 5px 0 0;
+  background: transparent;
+  & > div {
+    @include background-style;
+  }
+}
+</style>
