@@ -2,7 +2,7 @@
   <div class="tv-container" v-if="loaded">
     <card-container :data="data?.items" :mType="mType" />
   </div>
-  <q-footer v-if="data?.pagesTotal > 1" class="text-white footer">
+  <q-footer v-if="loaded && data?.pagesTotal > 1" class="text-white footer">
     <q-toolbar class="flex flex-center">
       <q-pagination
         v-model="page"
@@ -25,7 +25,7 @@ import { ref } from 'vue';
 import { useStore } from '@/store/index';
 import CardContainer from '@/components/CardContainer.vue';
 import trakt from '../api/trakt';
-import { getEpisodeInfo } from '../api/tmdb';
+import { getEpisodeInfo, getShowInfo } from '../api/tmdb';
 
 export default {
   components: { CardContainer },
@@ -40,16 +40,18 @@ export default {
       filter: ref('history'),
       mType: ref(null),
       loaded: ref(false),
-      myRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-ratings'))),
+      myRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'))),
     };
   },
   async created() {
     this.store.$subscribe((mutated, state) => {
+      let loadData = false;
+      if (this.filter !== state.filter) {
+        loadData = true;
+      }
       this.filter = state.filter;
       this.loaded = state.loaded;
-      if (this.filter !== state.filter) {
-        this.loadData();
-      }
+      if (loadData) this.loadData();
     });
     if (this.$route.query.page) {
       this.page = parseInt(this.$route.query.page, 10);
@@ -64,15 +66,15 @@ export default {
         this.data = await trakt.getHistoryEpisodes(this.page);
         this.mType = 'episode';
 
-        // get Ratings
+        // get episode ratings
         const ratings = await trakt.getMyEpisodeRatings(1);
-        const storedRatings = JSON.parse(localStorage.getItem('trakt-vue-ratings'));
+        const storedRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
         if (storedRatings?.lastModified !== ratings.lastModified) {
           this.myRatings = { ...ratings };
-          console.log('getting the big ass rating object');
+          // getting the big rating object if ratings have changed
           trakt.getMyEpisodeRatings().then((remainingRatings) => {
             this.myRatings = { ...this.myRatings, ...remainingRatings };
-            localStorage.setItem('trakt-vue-ratings', JSON.stringify(this.myRatings));
+            localStorage.setItem('trakt-vue-episode-ratings', JSON.stringify(this.myRatings));
           });
         }
 
@@ -80,7 +82,6 @@ export default {
         const items = [];
         await Promise.all(
           this.data.items.map(async (item) => {
-            console.log(item);
             const images = await getEpisodeInfo(item.show, item.episode);
             // insert my rating
             const myRating = {};
@@ -95,6 +96,34 @@ export default {
       } else if (this.filter === 'recommended') {
         this.data = await trakt.getRecommendationsFromMe('shows', this.page);
         this.mType = 'show';
+
+        // get show ratings
+        const ratings = await trakt.getMyShowRatings(1);
+        const storedRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
+        // only get the big rating object if new ratings have been added
+        if (storedRatings?.lastModified !== ratings.lastModified) {
+          this.myRatings = { ...ratings };
+          trakt.getMyShowRatings().then((remainingRatings) => {
+            this.myRatings = { ...this.myRatings, ...remainingRatings };
+            localStorage.setItem('trakt-vue-show-ratings', JSON.stringify(this.myRatings));
+          });
+        }
+
+        // get images
+        const items = [];
+        await Promise.all(
+          this.data.items.map(async (item) => {
+            const images = await getShowInfo(item.show.ids);
+            // insert my rating
+            const myRating = {};
+            myRating.my_rating = this.myRatings.ratings.find(
+              (rating) => rating.show.ids.tmdb === item.show.ids.tmdb,
+            );
+            items.push({ ...item, ...images, ...myRating });
+          }),
+        );
+        items.sort((a, b) => a.rank - b.rank);
+        this.data.items = [...items];
       }
       this.store.updateLoading(true);
     },

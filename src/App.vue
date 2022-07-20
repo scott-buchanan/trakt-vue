@@ -23,6 +23,7 @@
           </div>
         </div>
       </q-img>
+
       <q-list class="text-white">
         <q-item
           clickable
@@ -33,7 +34,6 @@
           <q-item-section avatar>
             <q-icon name="tv" />
           </q-item-section>
-
           <q-item-section> TV Shows </q-item-section>
         </q-item>
 
@@ -50,6 +50,7 @@
           <q-item-section> Movies </q-item-section>
         </q-item>
       </q-list>
+
       <div class="bottom-links text-white">
         <div>Powered by</div>
         <div>
@@ -60,10 +61,7 @@
             <img src="@/assets/trakt-wide-red-white.svg" alt="The Movie DB" />
           </a>
           <a href="https://www.themoviedb.org/" target="blank">
-            <img
-              src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg"
-              alt="The Movie DB"
-            />
+            <img src="@/assets/tmdb.svg" alt="The Movie DB" />
           </a>
           <a href="https://fanart.tv/" target="blank">
             <img src="@/assets/fanart.tv.png" alt="fanart.tv" />
@@ -71,6 +69,7 @@
         </div>
       </div>
     </q-drawer>
+
     <q-page-container class="full-height">
       <div class="loader" v-if="!loaded">
         <div class="full-height full-width">
@@ -78,24 +77,38 @@
         </div>
       </div>
 
+      <!-- page renders here -->
       <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
-import { useStore } from '@/store/index';
 import { ref } from 'vue';
-import { getAppBackgroundImg } from '@/api/tmdb';
+import { useStore } from '@/store/index';
+// components
 import LoaderFingers from '@/components/LoaderFingers.vue';
-import HeaderBar from './components/Header.vue';
-import trakt from './api/trakt';
+import HeaderBar from '@/components/Header.vue';
+// api
+import { getAppBackgroundImg } from '@/api/tmdb';
+import trakt from '@/api/trakt';
 
 export default {
   name: 'TraktVueApp',
   components: {
     HeaderBar,
     LoaderFingers,
+  },
+  setup() {
+    const store = useStore();
+    return {
+      drawer: ref(true),
+      link: ref('tv'),
+      store,
+      myInfo: ref(null),
+      loaded: ref(false),
+      backgroundImg: ref(''),
+    };
   },
   async created() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -122,20 +135,9 @@ export default {
 
     // get trakt settings
     this.myInfo = await trakt.getTraktSettings(authTokens.accessToken);
-    localStorage.setItem('trakt-vue-username', this.myInfo.user.username);
+    localStorage.setItem('trakt-vue-user', JSON.stringify(this.myInfo.user));
 
     this.backgroundImg = await getAppBackgroundImg();
-  },
-  setup() {
-    const store = useStore();
-    return {
-      drawer: ref(true),
-      link: ref('tv'),
-      store,
-      myInfo: ref(null),
-      loaded: ref(false),
-      backgroundImg: ref(null),
-    };
   },
   methods: {
     goToPage(page) {

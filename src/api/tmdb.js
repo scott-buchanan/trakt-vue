@@ -13,12 +13,24 @@ export async function getAppBackgroundImg() {
   return `https://image.tmdb.org/t/p/original/${response.data.results[rando].backdrop_path}`;
 }
 
-export async function getSeasonPoster(showId, seasonNumber) {
+export async function getShowPoster(showId) {
   const response = await axios({
     method: 'GET',
-    url: `https://api.themoviedb.org/3/tv/${showId}/season/${seasonNumber}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
+    url: `https://api.themoviedb.org/3/tv/${showId}/images?language=en&api_key=89c6bd3331244e97eed61741fc798ab5`,
   });
   return `https://image.tmdb.org/t/p/w780/${response.data.posters[0].file_path}`;
+}
+
+export async function getSeasonPoster(showId, seasonNumber) {
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `https://api.themoviedb.org/3/tv/${showId}/season/${seasonNumber}/images?language=en&api_key=89c6bd3331244e97eed61741fc798ab5`,
+    });
+    return `https://image.tmdb.org/t/p/w780/${response.data.posters[0].file_path}`;
+  } catch {
+    return getShowPoster(showId);
+  }
 }
 
 export async function getShowBackdrop(showId) {
@@ -92,13 +104,12 @@ export async function getShowInfo(ids) {
     url: `https://api.themoviedb.org/3/tv/${ids.tmdb}?api_key=89c6bd3331244e97eed61741fc798ab5`,
   });
   const returnVal = { ...response.data };
-  returnVal.clear_logo = getClearLogo(ids.tvdb);
-  returnVal.image = `https://image.tmdb.org/t/p/w780/${
-    response.data.backdrop_path ? response.data.backdrop_path : response.data.poster_path
-  }`;
-  getImdbRating(ids.imdb).then((rating) => {
-    returnVal.imdb_rating = rating;
-  });
+  [returnVal.clear_logo, returnVal.imdb_rating] = await Promise.all([
+    getClearLogo(ids.tvdb),
+    getImdbRating(ids.imdb),
+  ]);
+  returnVal.backdrop_sm = `https://image.tmdb.org/t/p/w780/${response.data.backdrop_path}`;
+  returnVal.backdrop_lg = `https://image.tmdb.org/t/p/original/${response.data.backdrop_path}`;
   returnVal.tmdb_rating = response.data.vote_average.toFixed(1);
   return returnVal;
 }

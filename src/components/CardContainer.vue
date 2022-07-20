@@ -33,7 +33,11 @@
             </div>
             <div v-if="item.my_rating">
               <q-avatar size="20px" class="block">
-                <img src="@/assets/me.jpg" alt="Scott Buchanan" />
+                <q-img
+                  :src="user?.images.avatar.full"
+                  :alt="user?.name"
+                  referrerpolicy="no-referrer"
+                />
               </q-avatar>
               <span>{{ item.my_rating.rating }}</span>
             </div>
@@ -85,6 +89,7 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import dayjs from 'dayjs';
 
 export default {
@@ -98,6 +103,11 @@ export default {
       type: String,
       default: 'show',
     },
+  },
+  setup() {
+    return {
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
+    };
   },
   methods: {
     formattedDate(wDate) {

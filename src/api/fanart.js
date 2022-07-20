@@ -8,7 +8,6 @@ export async function getClearLogo(showId) {
     });
     return response.data.hdtvlogo[0].url;
   } catch (error) {
-    console.error(error);
     return null;
   }
 }
@@ -21,7 +20,6 @@ export async function getBanner(showId) {
     });
     return response.data.tvbanner[0].url;
   } catch (error) {
-    console.error(error);
     return null;
   }
 }

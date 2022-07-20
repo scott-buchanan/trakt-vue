@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const uName = localStorage.getItem('trakt-vue-username');
+const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
 
 const functions = {
   getToken: async (code, path) => {
@@ -121,7 +121,7 @@ const functions = {
       url: `https://api.trakt.tv/users/${uName}/recommendations/${rType}/rank&page=${page}`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('trakt-vue-token').access_token}`,
+        Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
         'trakt-api-version': '2',
         'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
       },
@@ -136,6 +136,25 @@ const functions = {
     const url = page
       ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=100&page=${page}`
       : `https://api.trakt.tv/users/${uName}/ratings/episodes`;
+    const response = await axios({
+      method: 'GET',
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'trakt-api-version': '2',
+        'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+      },
+    });
+    const ratings = {
+      lastModified: response.headers['last-modified'],
+      ratings: response.data,
+    };
+    return ratings;
+  },
+  getMyShowRatings: async (page) => {
+    const url = page
+      ? `https://api.trakt.tv/users/${uName}/ratings/shows?limit=100&page=${page}`
+      : `https://api.trakt.tv/users/${uName}/ratings/shows`;
     const response = await axios({
       method: 'GET',
       url,
@@ -195,7 +214,36 @@ const functions = {
         'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
       },
     });
-    return response.data;
+    return Promise.all(
+      response.data.map(async (comment) => {
+        try {
+          const info = await axios({
+            method: 'GET',
+            url: `https://api.trakt.tv/users/${comment.user.ids.slug}?extended=full`,
+            headers: {
+              'Content-Type': 'application/json',
+              'trakt-api-version': '2',
+              'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+            },
+          });
+          const defaultAvatar = // eslint-disable-line
+            info.data.gender === 'female'
+              ? 'https://i2.wp.com/walter.trakt.tv/hotlink-ok/placeholders/medium/leela.png'
+              : 'https://i2.wp.com/walter.trakt.tv/hotlink-ok/placeholders/medium/fry.png';
+          return {
+            ...comment,
+            ...{ avatar: info.data.images ? info.data.images?.avatar.full : defaultAvatar },
+          };
+        } catch {
+          return {
+            ...comment,
+            ...{
+              avatar: 'https://i2.wp.com/walter.trakt.tv/hotlink-ok/placeholders/medium/fry.png',
+            },
+          };
+        }
+      }),
+    );
   },
 };
 
