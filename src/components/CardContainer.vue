@@ -2,7 +2,7 @@
   <q-scroll-area class="full-height full-width">
     <div class="row" v-if="data?.length > 0">
       <div
-        class="col-12 col-sm-6 col-xl-4 show-card"
+        class="col-12 col-md-6 col-xl-4 show-card"
         v-for="item in data"
         :key="mType === 'episode' ? item.episode.ids.trakt : item.show.ids.trakt"
         @click="clickDetails(item)"
@@ -67,7 +67,7 @@
                 </span>
                 <span>{{ formattedDate(item.watched_at) }}</span>
                 <q-tooltip :delay="500" :offset="[0, 5]">
-                  Watched on {{ formattedDateTime(item.watched_at) }}
+                  {{ formattedDateTime(item.watched_at) }}
                 </q-tooltip>
               </div>
             </div>
@@ -75,6 +75,13 @@
               <div>
                 <b>{{ item.show.year }}</b>
               </div>
+              <span v-if="item.watchers" class="q-pr-sm">
+                <q-icon name="visibility" size="24px" />
+                {{ item.watchers }}
+                <q-tooltip :delay="500" :offset="[0, 5]">
+                  {{ item.watchers }} people watching now
+                </q-tooltip>
+              </span>
               <span class="tags" v-for="genre in item.genres" :key="genre.id">
                 <q-badge color="secondary" class="text-dark">
                   {{ genre.name }}
@@ -121,12 +128,23 @@ export default {
         .replace(/[^a-zA-Z ]/g, '')
         .replace(/\s/g, '-')
         .toLowerCase();
-      sessionStorage.setItem('trakt-vue-current-item', JSON.stringify(item));
-      this.$router.push({
-        name: 'details',
-        params: { show: urlTitle, season: item.episode.season, episode: item.episode.number },
-        props: { data: item },
-      });
+      sessionStorage.setItem(
+        'trakt-vue-current-item',
+        JSON.stringify({ ...item, ...{ mType: this.mType } }),
+      );
+      if (this.mType === 'episode') {
+        this.$router.push({
+          name: 'episode-details',
+          params: { show: urlTitle, season: item.episode.season, episode: item.episode.number },
+          props: { data: item },
+        });
+      } else {
+        this.$router.push({
+          name: 'show-details',
+          params: { show: urlTitle },
+          props: { data: item },
+        });
+      }
     },
   },
 };

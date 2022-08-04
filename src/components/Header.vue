@@ -12,17 +12,17 @@
         dark
         @update:model-value="changeFilter"
       />
-      <div class="col-grow"></div>
     </q-toolbar>
   </q-header>
 </template>
 
 <script>
 import { ref } from 'vue';
+// store
 import { useStore } from '@/store/index';
 
 export default {
-  name: 'HeaderBar',
+  name: 'Header',
   props: {
     page: {
       type: String,
@@ -42,8 +42,9 @@ export default {
     };
   },
   methods: {
-    async changeFilter() {
+    changeFilter() {
       this.data.updateFilter(this.model.value);
+      this.$router.push({ path: '/tv' });
     },
   },
 };
@@ -51,9 +52,11 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
+
 .header {
-  padding: 5px 5px 0 0;
   background: transparent;
+  padding: $space-sm;
+  padding-left: 0;
   & > div {
     @include background-style;
   }

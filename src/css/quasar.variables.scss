@@ -17,3 +17,17 @@ $yellow: "#f3ce13";
   border-radius: 5px;
   background: rgba(0, 0, 0, $opacity-back);
 }
+
+$breakpoint-xs: 599px !default;
+$breakpoint-sm: 1023px !default;
+$breakpoint-md: 1439px !default;
+$breakpoint-lg: 1919px !default;
+
+$space-base: 16px !default;
+$space-x-base: $space-base !default;
+$space-y-base: $space-base !default;
+
+$space-xs: $space-base * 0.25 !default;
+$space-sm: $space-base * 0.5 !default;
+$space-md: $space-base * 1.5 !default;
+$space-lg: $space-base * 3 !default;

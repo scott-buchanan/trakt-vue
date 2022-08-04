@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as fallback from '@/assets/fallback-tv.jpg';
 import getImdbRating from '@/api/omdb';
-import { getClearLogo } from './fanart';
+import { getClearLogo, getTvThumb } from './fanart';
 import trakt from './trakt';
 
 export async function getAppBackgroundImg() {
@@ -27,7 +27,7 @@ export async function getSeasonPoster(showId, seasonNumber) {
       method: 'GET',
       url: `https://api.themoviedb.org/3/tv/${showId}/season/${seasonNumber}/images?language=en&api_key=89c6bd3331244e97eed61741fc798ab5`,
     });
-    return `https://image.tmdb.org/t/p/w780/${response.data.posters[0].file_path}`;
+    return `https://image.tmdb.org/t/p/w500/${response.data.posters[0].file_path}`;
   } catch {
     return getShowPoster(showId);
   }
@@ -108,8 +108,15 @@ export async function getShowInfo(ids) {
     getClearLogo(ids.tvdb),
     getImdbRating(ids.imdb),
   ]);
-  returnVal.backdrop_sm = `https://image.tmdb.org/t/p/w780/${response.data.backdrop_path}`;
-  returnVal.backdrop_lg = `https://image.tmdb.org/t/p/original/${response.data.backdrop_path}`;
+  let backdrop = response.data.backdrop_path;
+  if (backdrop === null) {
+    backdrop = await getTvThumb(ids.tvdb);
+    returnVal.backdrop_sm = backdrop;
+    returnVal.backdrop_lg = backdrop;
+  } else {
+    returnVal.backdrop_sm = `https://image.tmdb.org/t/p/w780/${backdrop}`;
+    returnVal.backdrop_lg = `https://image.tmdb.org/t/p/original/${backdrop}`;
+  }
   returnVal.tmdb_rating = response.data.vote_average.toFixed(1);
   return returnVal;
 }
@@ -120,4 +127,23 @@ export async function getActorImage(tmdbId) {
     url: `https://api.themoviedb.org/3/person/${tmdbId}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
   });
   return response.data;
+}
+
+export async function rateEpisode(showId, season, episode, rating) {
+  const response = await axios({
+    method: 'POST',
+    url: `https://api.themoviedb.org/3/tv/${showId}/season/${season}/episode/${episode}/rating?api_key=89c6bd3331244e97eed61741fc798ab5`,
+    data: {
+      value: rating,
+    },
+  });
+  return response.status === 201;
+}
+
+export async function getShowVideos(showId) {
+  const response = await axios({
+    method: 'GET',
+    url: `https://api.themoviedb.org/3//tv/${showId}/videos?api_key=89c6bd3331244e97eed61741fc798ab5`,
+  });
+  return response.data.results;
 }

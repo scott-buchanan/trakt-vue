@@ -9,6 +9,8 @@ export const useStore = defineStore('main', {
     page: '1',
     filter: 'history',
     loaded: false,
+    tokens: null,
+    myInfo: null,
   }),
   actions: {
     updatePage(page) {
@@ -22,6 +24,12 @@ export const useStore = defineStore('main', {
     },
     updateLoading(loaded) {
       this.loaded = loaded;
+    },
+    updateTokens(tokens) {
+      this.tokens = { ...tokens };
+    },
+    updateMyInfo(myInfo) {
+      this.myInfo = { ...myInfo };
     },
   },
 });

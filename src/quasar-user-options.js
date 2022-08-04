@@ -1,10 +1,12 @@
 import 'quasar/dist/quasar.css';
 import '@quasar/extras/material-icons/material-icons.css';
 import '@quasar/extras/material-icons-outlined/material-icons-outlined.css';
+import { Notify } from 'quasar';
 
 // To be used on app.use(Quasar, { ... })
 export default {
   config: {
+    notify: {},
     brand: {
       primary: '#14213D',
       secondary: '#FCA311',
@@ -16,5 +18,5 @@ export default {
       warning: '#F2C037',
     },
   },
-  plugins: {},
+  plugins: { Notify },
 };
