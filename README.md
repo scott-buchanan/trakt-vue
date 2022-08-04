@@ -8,4 +8,4 @@ yarn
 yarn serve
 ```
 
-![Screenshot 2022-07-22 164322](https://user-images.githubusercontent.com/7110108/180516239-75f05d20-3a96-4fd8-aa58-23fec40d6c66.png)
+![image](https://user-images.githubusercontent.com/7110108/182758090-861ef4e1-8e60-4525-860a-026661d5b191.png)
