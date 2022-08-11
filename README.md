@@ -26,4 +26,4 @@ yarn
 yarn serve
 ```
 
-![image](https://user-images.githubusercontent.com/7110108/182758090-861ef4e1-8e60-4525-860a-026661d5b191.png)
+![screenshot](https://user-images.githubusercontent.com/7110108/184250355-d4a42bf2-2575-4c10-88e9-2d84bde82dc5.png)
