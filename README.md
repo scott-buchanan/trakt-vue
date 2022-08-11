@@ -1,6 +1,14 @@
-# Vue 3 with Trakt, TMDB, and fanart.tv 
+# Vue 3 with Trakt, TMDB, OMDb and fanart.tv 
 
-Just something I am making to get more familiar with Vue 3, and I have wanted to try the Trakt API for a while now.
+Personal project to get more familiar with Vue 3. Using Trakt, TMDB, fanart, OMDb API's.
+
+- View Trakt trending shows/movies
+- View Trakt shows recommended by you
+- View episode watched history
+- Search for TV Shows and Movies (with autocomplete)
+- Rate episodes, shows, movies (Trakt)
+- Read Reviews for episodes, shows, movies
+- View list of actors for episodes, shows, movies
 
 ## Project setup
 ```
