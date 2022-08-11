@@ -10,6 +10,16 @@ Personal project to get more familiar with Vue 3. Using Trakt, TMDB, fanart, OMD
 - Read Reviews for episodes, shows, movies
 - View list of actors for episodes, shows, movies
 
+## Upcoming features
+- Movies (WIP)
+- Mobile support
+- Write reviews
+- Rate episode/show/movie will also push to TMDB
+- List seasons in TV Show details
+- Actors section (instead of linking off to IMDb)
+
+More will be added to this list as I think of things to add. 
+
 ## Project setup
 ```
 yarn
