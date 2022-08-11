@@ -6,8 +6,8 @@ import { defineStore } from 'pinia';
 export const useStore = defineStore('main', {
   state: () => ({
     data: null,
-    page: '1',
-    filter: 'history',
+    page: 1,
+    filter: null,
     loaded: false,
     tokens: null,
     myInfo: null,

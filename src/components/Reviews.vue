@@ -1,8 +1,13 @@
 <template>
   <q-timeline v-if="reviews.length > 0" color="secondary" class="q-mb-lg" dark>
-    <q-timeline-entry heading class="review-heading" tag="h2"> User Reviews </q-timeline-entry>
-    <q-timeline-entry v-for="review in filteredReviews" :key="review.id">
-      <template #title>
+    <div class="flex items-start justify-between">
+      <q-timeline-entry heading class="review-heading" tag="h2"> User Reviews </q-timeline-entry>
+      <div class="unrated-toggle">
+        Unrated <q-toggle class="q-ml-xs" v-model="showUnrated" color="secondary" dark dense />
+      </div>
+    </div>
+    <q-timeline-entry v-for="review in truncateReviews" :key="review.id">
+      <template v-if="review.user_rating || review.user_stats.rating" #title>
         <q-item class="review-rating q-pa-none">
           <q-item-section>
             <q-item-label class="flex items-center">
@@ -53,9 +58,11 @@
 <script>
 import { ref } from 'vue';
 import * as emoji from 'node-emoji';
-import ReviewCardDetails from '@/components/ReviewCardDetailsDialog.vue';
 import dayjs from 'dayjs';
+// api
 import { getTvThumb } from '@/api/fanart';
+// components
+import ReviewCardDetails from '@/components/ReviewCardDetailsDialog.vue';
 
 export default {
   name: 'Reviews',
@@ -75,11 +82,18 @@ export default {
       reviewsMore: ref(false),
       reviewDetails: ref(null),
       episodeBackdrop: ref(null),
+      showUnrated: ref(false),
     };
   },
   computed: {
     filteredReviews() {
-      return this.reviewsMore ? this.reviews : this.reviews.slice(0, 2);
+      if (this.showUnrated) {
+        return this.reviews;
+      }
+      return this.reviews.filter((review) => review.user_rating !== null);
+    },
+    truncateReviews() {
+      return this.reviewsMore ? this.filteredReviews : this.filteredReviews.slice(0, 2);
     },
     modalData: {
       get() {
@@ -100,7 +114,7 @@ export default {
       return `${text.substring(0, length)}...`;
     },
     formatReviews(text) {
-      return emoji.emojify(text).replace('[spoiler]', '').replace('[/spoiler]', '');
+      return emoji.emojify(text).replaceAll('[spoiler]', '').replaceAll('[/spoiler]', '');
     },
     formattedDate(wDate) {
       return dayjs(wDate).format('MMM DD, YYYY');
@@ -113,15 +127,22 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-::v-deep .q-timeline__dot {
+@import '@/css/quasar.variables.scss';
+:deep(.q-timeline__dot) {
   top: 10px;
+}
+:deep(.q-timeline__subtitle) {
+  opacity: 1;
+  color: $accent;
 }
 .review-rating {
   min-height: auto;
-  opacity: 0.8;
   & .star {
     opacity: 1;
     margin-right: 3px;
   }
+}
+.unrated-toggle {
+  @include darkText;
 }
 </style>

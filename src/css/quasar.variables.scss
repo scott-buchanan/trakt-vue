@@ -1,22 +1,17 @@
-$primary: "#14213D";
-$secondary: "#FCA311";
-$accent: "#e5e5e5";
+$primary: #14213d;
+$secondary: #fca311;
+$accent: #a7a7a7;
 
-$dark: "#000";
+$dark: #000;
 
-$positive: "#21BA45";
-$negative: "#C10;015";
-$info: "#31CCEC";
-$warning: "#F2C037";
+$positive: #21ba45;
+$negative: #c10015;
+$info: #31ccec;
+$warning: #f2c037;
 
 $opacity-back: 0.5;
 
-$yellow: "#f3ce13";
-
-@mixin background-style {
-  border-radius: 5px;
-  background: rgba(0, 0, 0, $opacity-back);
-}
+$yellow: #f3ce13;
 
 $breakpoint-xs: 599px !default;
 $breakpoint-sm: 1023px !default;
@@ -31,3 +26,14 @@ $space-xs: $space-base * 0.25 !default;
 $space-sm: $space-base * 0.5 !default;
 $space-md: $space-base * 1.5 !default;
 $space-lg: $space-base * 3 !default;
+
+@mixin background-style {
+  border-radius: 5px;
+  background: rgba(0, 0, 0, $opacity-back);
+}
+
+@mixin darkText {
+  text-transform: uppercase;
+  color: $accent;
+  font-weight: 500;
+}

@@ -1,6 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useStore } from '@/store/index';
-import trakt from '@/api/trakt';
+import {
+  getTokenFromRefresh,
+  getToken,
+  getTraktSettings,
+  getMyShowRatings,
+  getMyEpisodeRatings,
+  getMyMovieRatings,
+} from '@/api/trakt';
 
 const routes = [
   {
@@ -13,6 +20,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "TV" */ '../views/tv.vue'),
   },
   {
+    path: '/movie',
+    name: 'movie',
+    component: () => import(/* webpackChunkName: "TV" */ '../views/movie.vue'),
+  },
+  {
     path: '/tv/:show/season/:season/episode/:episode',
     name: 'episode-details',
     component: () => import(/* webpackChunkName: "TV" */ '../views/episode-details.vue'),
@@ -21,6 +33,11 @@ const routes = [
     path: '/tv/:show',
     name: 'show-details',
     component: () => import(/* webpackChunkName: "TV" */ '../views/show-details.vue'),
+  },
+  {
+    path: '/search',
+    name: 'search',
+    component: () => import(/* webpackChunkName: "TV" */ '../views/search.vue'),
   },
   {
     // 404
@@ -42,13 +59,52 @@ router.beforeEach(async (to, from, next) => {
   if (localStorage.getItem('trakt-vue-token')) {
     // if local storage has tokens, get the accessToken from the refreshToken
     const tokens = JSON.parse(localStorage.getItem('trakt-vue-token'));
-    authTokens = await trakt.getTokenFromRefresh(tokens.refreshToken, to.path);
+    authTokens = await getTokenFromRefresh(tokens.refreshToken, to.path);
     localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
     store.updateTokens(authTokens);
+
+    // get show ratings
+    const myShowRatings = await getMyShowRatings(1);
+    const storedEpRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-show-ratings', JSON.stringify(myShowRatings));
+    if (storedEpRatings?.lastModified !== myShowRatings.lastModified) {
+      // only get the big rating object if new ratings have been added
+      getMyShowRatings().then((remainingRatings) => {
+        const total = { ...myShowRatings, ...remainingRatings };
+        localStorage.setItem('trakt-vue-show-ratings', JSON.stringify(total));
+      });
+    }
+
+    // get episode ratings
+    const myEpRatings = await getMyEpisodeRatings(1);
+    const storedShowRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-episode-ratings', JSON.stringify(myEpRatings));
+    if (storedShowRatings?.lastModified !== myEpRatings.lastModified) {
+      // getting the big rating object if ratings have changed
+      getMyEpisodeRatings().then((remainingRatings) => {
+        const total = { ...myEpRatings, ...remainingRatings };
+        localStorage.setItem('trakt-vue-episode-ratings', JSON.stringify(total));
+      });
+    }
+
+    // get movie ratings
+    const myMovieRatings = await getMyMovieRatings(1);
+    const storedMovieRatings = JSON.parse(localStorage.getItem('trakt-vue-movie-ratings'));
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-movie-ratings', JSON.stringify(myMovieRatings));
+    if (storedMovieRatings?.lastModified !== myMovieRatings.lastModified) {
+      // getting the big rating object if ratings have changed
+      getMyMovieRatings().then((remainingRatings) => {
+        const total = { ...myMovieRatings, ...remainingRatings };
+        localStorage.setItem('trakt-vue-movie-ratings', JSON.stringify(total));
+      });
+    }
   } else if (urlParams.get('code')) {
     // if no tokens were present and we fell into the else, we get redirected
     // with query: code and put tokens into local storage
-    authTokens = await trakt.getToken(urlParams.get('code'));
+    authTokens = await getToken(urlParams.get('code'));
     localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
     store.updateTokens(authTokens);
     next({ name: to.name, query: null });
@@ -57,7 +113,7 @@ router.beforeEach(async (to, from, next) => {
       'https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080';
   }
 
-  const myInfo = await trakt.getTraktSettings(authTokens.accessToken);
+  const myInfo = await getTraktSettings(authTokens.accessToken);
   store.updateMyInfo(myInfo);
 
   next();

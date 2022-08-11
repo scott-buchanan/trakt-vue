@@ -21,12 +21,14 @@
                 :alt="info.show.title"
               />
               <h1 v-else>{{ info.show.title }}</h1>
-              <div :class="['episode-title', 'q-mt-sm']">
+              <div :class="['episode-title', 'q-mt-sm', 'q-mb-md']">
                 {{ info.episode.season }}x{{ info.episode.number.toString().padStart(2, '0') }}
                 {{ info.episode.title }}
-                <i v-if="info.runtime">({{ info.runtime }} mins)</i>
               </div>
-              <p>Aired: {{ formattedDate(info.air_date) }}</p>
+              <div :class="['flex', 'q-mb-md', 'episode-info']">
+                <div><span>runtime: </span>{{ info.runtime }} minutes</div>
+                <div><span>aired: </span>{{ formattedDate(info.air_date) }}</div>
+              </div>
               <div class="ratings">
                 <div v-if="info.imdb_rating">
                   <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${info.imdb_rating}`" />
@@ -123,7 +125,7 @@ import dayjs from 'dayjs';
 import { useStore } from '@/store/index';
 // api
 import { getSeasonPoster, getActorImage } from '@/api/tmdb';
-import trakt from '@/api/trakt';
+import { getEpisodeActors, getComments, rateEpisode } from '@/api/trakt';
 // components
 import Actors from '@/components/Actors.vue';
 import Reviews from '@/components/Reviews.vue';
@@ -154,11 +156,15 @@ export default {
     this.store.updateLoading(false);
 
     this.info = JSON.parse(sessionStorage.getItem('trakt-vue-current-item'));
-    this.myRating = this.info.my_rating?.rating;
-
     this.poster = await getSeasonPoster(this.info.show.ids.tmdb, this.info.episode.season);
 
-    const traktActors = await trakt.getEpisodeActors(
+    // get my rating from ratings in local storage
+    const { ratings } = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
+    this.myRating = ratings.find(
+      (rating) => rating.episode.ids.trakt === this.info.episode.ids.trakt,
+    )?.rating;
+
+    const traktActors = await getEpisodeActors(
       this.info.show.ids.trakt,
       this.info.episode.season,
       this.info.episode.number,
@@ -176,23 +182,19 @@ export default {
     );
 
     // get episode reviews
-    const arrReviews = await trakt.getComments(
+    this.reviews = await getComments(
       this.info.show.ids.trakt,
       this.info.episode.season,
       this.info.episode.number,
     );
 
-    // filter out reviews with no ratings (didn't do this in api because might
-    // use a filter to display all)
-    this.reviews = arrReviews.filter((review) => review.user_rating !== null);
-
     this.store.updateLoading(true);
   },
   computed: {
     detailsBackground() {
-      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.7) 30%, rgba(0,0,0,0)),
-              linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 30%, rgba(0,0,0,0)),
-              linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 30%, rgba(0,0,0,0)),
+      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
+              linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
+              linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
               url(${this.info?.backdrop_lg})`;
     },
     screenGreaterThan() {
@@ -204,11 +206,13 @@ export default {
       return dayjs(wDate).format('MMM DD, YYYY');
     },
     rateEpisode() {
-      const traktRating = trakt.rateEpisode(this.info.episode, this.myRating);
-      // TODO: add movieDB rating
+      const traktRating = rateEpisode(this.info.episode, this.myRating);
+      // TODO: add movieDB rating (that's why there is a promise all)
       Promise.all([traktRating]).then((response) => {
         if (response[0]) {
-          this.info.my_rating = { rating: this.myRating };
+          this.info.my_rating = {
+            rating: this.myRating,
+          };
           sessionStorage.setItem('trakt-vue-current-item', JSON.stringify(this.info));
           this.closeRatingPopup();
           this.$q.notify({
@@ -298,6 +302,15 @@ h1 {
   & > div > div:nth-child(2) {
     font-size: 24px;
     margin: 0 10px 0 10px;
+  }
+}
+.episode-info {
+  flex-wrap: wrap;
+  & > div {
+    margin-right: $space-md;
+  }
+  & span {
+    @include darkText;
   }
 }
 </style>

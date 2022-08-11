@@ -20,7 +20,7 @@
         </q-item-section>
         <q-item-section>
           <q-item-label class="flex items-center q-mb-md">
-            <div class="q-mr-xs">
+            <div v-show="data.review.user_rating || data.review.user_stats.rating" class="q-mr-xs">
               <span>
                 {{
                   data.review.userating ? data.review.user_rating : data.review.user_stats.rating
@@ -28,8 +28,16 @@
               </span>
               <small>&nbsp;/10</small>
             </div>
-            <div v-for="star in userRatingStars" :key="star">
-              <q-icon :name="star === 'full' ? 'star' : 'star_half'" color="yellow" size="1.5em" />
+            <div
+              v-show="data.review.user_rating || data.review.user_stats.rating"
+              v-for="star in userRatingStars"
+              :key="star"
+            >
+              <q-icon
+                :name="star === 'full' ? 'star' : star === 'half' ? 'star_half' : 'star_outline'"
+                color="yellow"
+                size="1.5em"
+              />
             </div>
             <div class="col-grow text-right">{{ formattedDate(data.review.created_at) }}</div>
           </q-item-label>
@@ -40,19 +48,20 @@
           </q-item-label>
         </q-item-section>
       </q-item>
-      <div style="max-height: 400px" class="scroll">
+      <q-scroll-area :style="{ height: getReviewHeight() }" dark>
         <q-item class="q-pa-md">
-          <q-item-section>
-            {{ data.review.comment }}
+          <q-item-section ref="reviewDiv">
+            {{ formatReview(data.review.comment) }}
           </q-item-section>
         </q-item>
-      </div>
+      </q-scroll-area>
     </q-card>
   </q-dialog>
 </template>
 
 <script>
 import dayjs from 'dayjs';
+import * as emoji from 'node-emoji';
 
 export default {
   name: 'ReviewCardDetails',
@@ -76,10 +85,23 @@ export default {
         arrStars.push('full');
       }
       if (addHalf) arrStars.splice(-1, 1, 'half');
+      for (let i = arrStars.length; i < 5; i += 1) {
+        arrStars.push('empty');
+      }
       return arrStars;
     },
   },
   methods: {
+    getReviewHeight() {
+      if (this.$refs.reviewDiv) {
+        const height = this.$refs.reviewDiv.$el.clientHeight + 40;
+        return `${height}px`;
+      }
+      return '300px';
+    },
+    formatReview(text) {
+      return emoji.emojify(text).replaceAll('[spoiler]', '').replaceAll('[/spoiler]', '');
+    },
     formattedDate(wDate) {
       return dayjs(wDate).format('MMM DD, YYYY');
     },

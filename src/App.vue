@@ -57,8 +57,8 @@
           <q-item
             clickable
             active-class="bg-secondary text-dark"
-            :active="link === 'movies'"
-            @click="link = 'movies'"
+            :active="link === 'movie'"
+            @click="goToPage('movie')"
           >
             <q-item-section avatar>
               <q-icon name="movie" />
@@ -109,7 +109,6 @@ import LoaderFingers from '@/components/LoaderFingers.vue';
 import HeaderBar from '@/components/Header.vue';
 // api
 import { getAppBackgroundImg } from '@/api/tmdb';
-// import trakt from '@/api/trakt';
 
 export default {
   name: 'TraktVueApp',
@@ -134,27 +133,6 @@ export default {
       this.loaded = state.loaded;
       this.myInfo = state.myInfo;
     });
-    console.log('piss');
-
-    // const urlParams = new URLSearchParams(window.location.search);
-    // let authTokens;
-    // if (localStorage.getItem('trakt-vue-token')) {
-    //   // if local storage has tokens, get the accessToken from the refreshToken
-    //   const tokens = JSON.parse(localStorage.getItem('trakt-vue-token'));
-    //   authTokens = await trakt.getTokenFromRefresh(tokens.refreshToken, this.$route.path);
-    //   localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
-    //   this.store.updateTokens(authTokens);
-    // } else if (urlParams.get('code')) {
-    //   // if no tokens were present and we fell into the else, we get redirected
-    //   // with query: code and put tokens into local storage
-    //   authTokens = await trakt.getToken(urlParams.get('code'), this.$route.path);
-    //   localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
-    //   this.store.updateTokens(authTokens);
-    // } else {
-    //   window.location = `https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080${this.$route.path}`;
-    // }
-
-    // this.myInfo = await trakt.getTraktSettings(authTokens.accessToken);
 
     this.backgroundImg = await getAppBackgroundImg();
   },
@@ -173,6 +151,7 @@ export default {
 </script>
 
 <style lang="scss">
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
 @import '@/css/quasar.variables.scss';
 
 html,
@@ -180,10 +159,8 @@ body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
-  & > div {
-    height: 100%;
-    min-height: 100%;
-  }
+  color: white;
+  overflow: overlay;
 }
 h1 {
   font-size: 24px !important;
@@ -197,6 +174,13 @@ a,
 a:hover,
 a:active {
   color: white;
+}
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  padding: 0;
 }
 .layout {
   background-size: cover;
@@ -262,5 +246,33 @@ a:active {
     justify-content: center;
     align-items: center;
   }
+}
+
+body::-webkit-scrollbar-track-piece {
+  display: none;
+}
+
+/* width */
+::-webkit-scrollbar {
+  display: none;
+  width: 10px;
+  background: url('@/assets/transparent.png') repeat;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  display: block;
+  background: url('@/assets/transparent.png') repeat;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  display: block;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+}
+:deep(.q-notify) {
+  height: 0;
+  min-height: 0;
 }
 </style>

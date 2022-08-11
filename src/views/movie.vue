@@ -1,6 +1,6 @@
 <template>
   <div :class="['full-height', 'tv-container']" v-if="loaded">
-    <CardContainer :data="data?.items" :mType="filter.type.slice(0, -1)" />
+    <card-container :data="data?.items" :mType="filter.type.slice(0, -1)" />
   </div>
   <q-footer v-if="loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
     <q-toolbar class="flex flex-center">
@@ -23,8 +23,8 @@
 <script>
 import { ref } from 'vue';
 // api
-import { getWatchedHistory, getRecommendationsFromMe, getTrendingShows } from '@/api/trakt';
-import { getInfo, getEpisodeInfo } from '@/api/tmdb';
+import { getWatchedHistory, getRecommendationsFromMe } from '@/api/trakt';
+import { getInfo } from '@/api/tmdb';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -32,7 +32,7 @@ import CardContainer from '@/components/CardContainer.vue';
 
 export default {
   components: { CardContainer },
-  name: 'TvView',
+  name: 'movie',
   setup() {
     const store = useStore();
     return {
@@ -78,63 +78,38 @@ export default {
     async loadData() {
       this.store.updateLoading(false);
 
-      // this makes it so the card container always has a full last line
+      // this makes it so the card container always has a full last row
       localStorage.setItem('item-limit', this.screenGreaterThan.lg ? 21 : 20);
 
-      if (this.filter.type === 'episodes') {
-        // get Trakt data
-        this.data = await getWatchedHistory(this.filter.type, this.page);
-
-        this.myEpRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
-
-        // get images and ratings
-        const items = [];
-        await Promise.all(
-          this.data.items.map(async (item) => {
-            const images = await getEpisodeInfo(item.show, item.episode);
-            const myRating = {};
-            myRating.my_rating = this.myEpRatings.ratings.find(
-              (rating) => rating.episode.ids.trakt === item.episode.ids.trakt,
-            );
-            items.push({ ...item, ...images, ...myRating });
-          }),
-        );
-
-        items.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at));
-        this.data.items = [...items];
-      } else {
-        switch (this.filter.value) {
-          case 'recommended':
-            this.data = await getRecommendationsFromMe(this.filter.type, this.page);
-            break;
-          default:
-            // default to trending
-            this.data = await getTrendingShows(this.page);
-        }
-
-        this.myShowRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
-
-        // get images and ratings
-        const items = [];
-        await Promise.all(
-          this.data.items.map(async (item) => {
-            const images = await getInfo('tv', item.show.ids);
-            const myRating = {};
-            myRating.my_rating = this.myShowRatings.ratings.find(
-              (rating) => !('episode' in rating) && rating.show.ids.trakt === item.show.ids.trakt,
-            );
-            items.push({ ...item, ...images, ...myRating });
-          }),
-        );
-
-        if (this.filter.value === 'recommended') {
-          items.sort((a, b) => a.rank - b.rank);
-        } else if (this.filter.value === 'trending') {
-          items.sort((a, b) => b.watchers - a.watchers);
-        }
-
-        this.data.items = [...items];
+      switch (this.filter.value) {
+        case 'trending':
+          this.data = await getRecommendationsFromMe(this.filter.type, this.page);
+          break;
+        default:
+          this.data = await getWatchedHistory(this.filter.type, this.page);
       }
+
+      this.myMovieRatings = JSON.parse(localStorage.getItem('trakt-vue-movie-ratings'));
+      // get images and ratings
+      const items = [];
+      await Promise.all(
+        this.data.items.map(async (item) => {
+          const images = await getInfo('movie', item.movie.ids);
+          const myRating = {};
+          myRating.my_rating = this.myMovieRatings.ratings.find(
+            (rating) => rating.movie.ids.trakt === item.movie.ids.trakt,
+          );
+          items.push({ ...item, ...images, ...myRating });
+        }),
+      );
+
+      // if (this.filter.value === 'recommended') {
+      //   items.sort((a, b) => a.rank - b.rank);
+      // } else if (this.filter === 'trending') {
+      //   items.sort((a, b) => b.watchers - a.watchers);
+      // }
+
+      this.data.items = [...items];
       this.store.updateLoading(true);
     },
     changePage() {

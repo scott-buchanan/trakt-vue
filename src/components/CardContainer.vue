@@ -1,17 +1,17 @@
 <template>
-  <q-scroll-area class="full-height full-width">
+  <q-scroll-area class="full-height full-width" :thumb-style="{ opacity: 0.5 }">
     <div class="row" v-if="data?.length > 0">
       <div
         class="col-12 col-md-6 col-xl-4 show-card"
         v-for="item in data"
-        :key="mType === 'episode' ? item.episode.ids.trakt : item.show.ids.trakt"
+        :key="item[mType].ids.trakt"
         @click="clickDetails(item)"
         @keyDown="clickDetails(item)"
       >
         <q-img
           no-spinner
           :src="item.backdrop_sm"
-          :alt="mType === 'episode' ? item.episode.title : item.show.title"
+          :alt="item[mType].title"
           fit="cover"
           :ratio="16 / 9"
         >
@@ -73,7 +73,7 @@
             </div>
             <div v-else class="text-right">
               <div>
-                <b>{{ item.show.year }}</b>
+                <b>{{ item[mType].year }}</b>
               </div>
               <span v-if="item.watchers" class="q-pr-sm">
                 <q-icon name="visibility" size="24px" />
@@ -82,7 +82,7 @@
                   {{ item.watchers }} people watching now
                 </q-tooltip>
               </span>
-              <span class="tags" v-for="genre in item.genres" :key="genre.id">
+              <span class="tags" v-for="genre in item.genres.slice(0, 4)" :key="genre.id">
                 <q-badge color="secondary" class="text-dark">
                   {{ genre.name }}
                 </q-badge>

@@ -11,7 +11,7 @@
         <div :class="['flex', 'no-wrap', 'q-pa-md']">
           <div class="poster">
             <div class="relative-position">
-              <q-img :src="poster" alt="" />
+              <q-img :ratio="1 / 1.5" :src="poster" alt="" />
               <q-linear-progress
                 size="10px"
                 class="absolute-bottom"
@@ -31,11 +31,42 @@
                 role="heading"
                 aria-level="1"
                 v-if="info.clear_logo"
-                class="show-logo"
+                :class="['show-logo', 'block']"
                 :src="info.clear_logo"
                 :alt="info.show.title"
               />
-              <h1 v-else>{{ info.show.title }}</h1>
+              <h1 class="q-mb-md" v-else>{{ info.show.title }}</h1>
+              <h2 :class="['inline-block', 'text-weight-regular', 'q-mb-lg']">
+                {{ info.show.year }}
+                <span v-if="info.certification" :class="['certification', 'q-ml-sm']">{{
+                  info.certification
+                }}</span>
+              </h2>
+              <div class="q-mb-sm">
+                <q-chip
+                  v-for="genre in info.genres"
+                  :label="genre"
+                  square
+                  color="secondary"
+                  dense
+                  :key="genre"
+                  :class="['q-ma-none', 'q-mr-sm', 'q-mb-sm', 'text-capitalize']"
+                />
+              </div>
+              <div :class="['flex', 'q-mb-md', 'show-info']">
+                <div><span>seasons: </span>{{ info.number_of_seasons }}</div>
+                <div><span>episodes: </span>{{ info.number_of_episodes }}</div>
+                <div><span>runtime: </span>{{ info.episode_run_time[0] }} minutes</div>
+                <div class="text-uppercase"><span>country: </span>{{ info.country }}</div>
+                <div>
+                  <span>languages: </span>
+                  <template v-for="(language, index) in info.spoken_languages" :key="language">
+                    {{ language.english_name
+                    }}<template v-if="index !== info.spoken_languages.length - 1">, </template>
+                  </template>
+                </div>
+                <div><span>network: </span>{{ info.network }}</div>
+              </div>
               <div class="ratings">
                 <div v-if="info.imdb_rating">
                   <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${info.imdb_rating}`" />
@@ -59,7 +90,7 @@
                   @blur="closeRatingPopup"
                 >
                   <q-menu
-                    v-if="info.my_rating?.rating"
+                    v-if="myRating"
                     dark
                     v-model="ratingPopOpen"
                     transition-show="jump-down"
@@ -91,8 +122,8 @@
                       referrerpolicy="no-referrer"
                     />
                   </q-avatar>
-                  <div v-if="info.my_rating?.rating">
-                    <div>{{ info.my_rating.rating }}</div>
+                  <div v-if="myRating > 0">
+                    <div>{{ myRating }}</div>
                   </div>
                   <q-rating
                     v-else
@@ -147,8 +178,14 @@ import dayjs from 'dayjs';
 // store
 import { useStore } from '@/store/index';
 // api
-import { getShowPoster, getActorImage, getShowVideos } from '@/api/tmdb';
-import trakt from '@/api/trakt';
+import { getShowPoster, getActorImage, getInfo } from '@/api/tmdb';
+import {
+  getComments,
+  getShowActors,
+  getShowWatchedProgress,
+  rateShow,
+  getShowSummary,
+} from '@/api/trakt';
 // components
 import Actors from '@/components/Actors.vue';
 import Reviews from '@/components/Reviews.vue';
@@ -181,49 +218,30 @@ export default {
 
     this.store.updateLoading(false);
 
-    this.info = JSON.parse(sessionStorage.getItem('trakt-vue-current-item'));
-    this.myRating = this.info.my_rating?.rating;
-
-    this.poster = await getShowPoster(this.info.show.ids.tmdb);
-
-    const traktActors = await trakt.getShowActors(this.info.show.ids.trakt);
-
-    // get actors
-    await Promise.all(
-      traktActors.cast.map(async (actor) => {
-        const imageData = await getActorImage(actor.person.ids.tmdb);
-        if (imageData.profiles.length > 0) {
-          const url = `https://image.tmdb.org/t/p/w200${imageData.profiles[0].file_path}`;
-          this.actors.push({ ...actor, ...{ image: url } });
-        }
-      }),
-    );
-
-    // get reviews
-    const arrReviews = await trakt.getComments(this.info.show.ids.trakt);
-    // filter out reviews with no ratings (didn't do this in api because might
-    // use a filter to display all)
-    this.reviews = arrReviews.filter((review) => review.user_rating !== null);
-
-    const watchedProgress = await trakt.getShowWatchedProgress(this.info.show.ids.trakt);
-    this.watchedProgress = parseFloat(
-      (watchedProgress.completed / watchedProgress.aired).toFixed(2),
-    );
-
-    this.showVideos = await getShowVideos(this.info.show.ids.tmdb);
-    this.videoSlide = this.showVideos[0].key;
-    console.log(this.showVideos);
+    await this.getData();
 
     this.store.updateLoading(true);
+  },
+  beforeUpdate() {
+    this.watchedProgress = 0;
+  },
+  async updated() {
+    if (this.info && this.$route.params.ids) {
+      const params = JSON.parse(this.$route.params.ids);
+      const showId = this.info.show.ids.trakt;
+      if (showId !== params.trakt) {
+        await this.getData();
+      }
+    }
   },
   computed: {
     watchedPercent() {
       return `${this.watchedProgress * 100}% watched`;
     },
     detailsBackground() {
-      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.7) 30%, rgba(0,0,0,0)),
-              linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 30%, rgba(0,0,0,0)),
-              linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 30%, rgba(0,0,0,0)),
+      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
+              linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
+              linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
               url(${this.info?.backdrop_lg})`;
     },
     screenGreaterThan() {
@@ -231,11 +249,65 @@ export default {
     },
   },
   methods: {
+    async getData() {
+      this.store.updateLoading(false);
+
+      let ids;
+      let initialInfo;
+      if (this.$route.params.ids) {
+        ids = JSON.parse(this.$route.params.ids);
+        initialInfo = await getInfo(this.filter.type.slice(0, -1), ids);
+      } else {
+        initialInfo = JSON.parse(sessionStorage.getItem('trakt-vue-current-item'));
+        ids = initialInfo.show.ids;
+      }
+      const showSummary = await getShowSummary(ids.trakt);
+      this.info = { ...initialInfo, ...showSummary };
+
+      this.poster = await getShowPoster(this.info.show.ids.tmdb);
+
+      // get my rating from ratings in local storage
+      const { ratings } = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
+      const myRating = ratings.find(
+        (rating) => !('episode' in rating) && rating.show.ids.trakt === this.info.show.ids.trakt,
+      )?.rating;
+      if (myRating) this.myRating = myRating;
+
+      // get actors
+      const traktActors = await getShowActors(this.info.show.ids.trakt);
+      await Promise.all(
+        traktActors.cast.map(async (actor) => {
+          const imageData = await getActorImage(actor.person.ids.tmdb);
+          if (imageData.profiles.length > 0) {
+            const url = `https://image.tmdb.org/t/p/w200${imageData.profiles[0].file_path}`;
+            this.actors.push({ ...actor, ...{ image: url } });
+          }
+        }),
+      );
+
+      // get reviews
+      const arrReviews = await getComments(this.info.show.ids.trakt);
+      // filter out reviews with no ratings (didn't do this in api because might
+      // use a filter to display all)
+      this.reviews = arrReviews.filter((review) => review.user_rating !== null);
+
+      // for animation purposes
+      setTimeout(async () => {
+        const watchedProgress = await getShowWatchedProgress(this.info.show.ids.trakt);
+        this.watchedProgress = parseFloat(
+          (watchedProgress.completed / watchedProgress.aired).toFixed(2),
+        );
+      }, 500);
+
+      sessionStorage.setItem('trakt-vue-current-item', JSON.stringify(this.info));
+
+      this.store.updateLoading(true);
+    },
     formattedDate(wDate) {
       return dayjs(wDate).format('MMM DD, YYYY');
     },
     rateShow() {
-      const response = trakt.rateShow(this.info.show, this.myRating);
+      const response = rateShow(this.info, this.myRating);
       if (response) {
         this.info.my_rating = { rating: this.myRating };
         sessionStorage.setItem('trakt-vue-current-item', JSON.stringify(this.info));
@@ -276,7 +348,7 @@ export default {
 @import '@/css/quasar.variables.scss';
 
 h1 {
-  font-size: 18px !important;
+  font-weight: 400;
 }
 .background {
   background-size: cover;
@@ -322,7 +394,20 @@ h1 {
     margin: 0 10px 0 10px;
   }
 }
-.videos-carousel {
-  background: transparent;
+.certification {
+  border: 1px solid $secondary;
+  color: $secondary;
+  border-radius: 3px;
+  padding: 3px 5px;
+  font-size: 0.75em;
+}
+.show-info {
+  flex-wrap: wrap;
+  & > div {
+    margin-right: $space-md;
+  }
+  & span {
+    @include darkText;
+  }
 }
 </style>
