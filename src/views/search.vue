@@ -66,7 +66,6 @@
 import { ref } from 'vue';
 // api
 import { getSearchResults } from '@/api/tmdb';
-import { getIdLookupTmdb } from '@/api/trakt';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -110,12 +109,11 @@ export default {
   },
   methods: {
     async goToDetails(item) {
-      const showBasicInfo = await getIdLookupTmdb(item.id, item.media_type);
+      const mType = item.media_type === 'tv' ? 'show' : 'movie';
       this.$router.push({
-        name: 'show-details',
+        name: mType === 'show' ? 'show-details' : 'movie-details',
         params: {
-          ids: JSON.stringify(showBasicInfo[0].show.ids),
-          show: showBasicInfo[0].show.title,
+          [mType]: item.ids.slug,
         },
       });
     },

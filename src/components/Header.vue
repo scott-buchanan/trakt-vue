@@ -13,7 +13,7 @@
         class="col-6"
         clearable
         @update:model-value="doSearch"
-        @focus="showMenu = true"
+        @focus="handleSearchFocus"
         @blur="handleSearchBlur"
         @clear="autocompleteApiResults = []"
         @keydown="goSearch"
@@ -23,7 +23,6 @@
         </template>
       </q-input>
       <q-menu
-        v-if="showMenu"
         :model-value="showMenu"
         :target="$refs.searchInput"
         no-parent-event
@@ -33,7 +32,7 @@
         fit
         class="autocomplete-menu"
         transition-show="jump-up"
-        transition-hide="jump-up"
+        transition-hide="jump-down"
       >
         <q-list>
           <q-item
@@ -81,12 +80,12 @@
       </q-menu>
       <q-select
         v-model="filterModel"
-        dense
-        :options="filterOptions"
+        :options="filterOptions[store.filterType]"
         label="Filter"
         color="secondary"
         label-color="white"
         :class="['q-my-sm', 'filter-select']"
+        dense
         dark
         outlined
         @update:model-value="changeFilter"
@@ -114,42 +113,52 @@ export default {
   },
   setup() {
     const store = useStore();
-    let filterOptions;
-    if (window.location.pathname === '/movie') {
-      filterOptions = [
-        { label: 'Watch History', value: 'history', type: 'movies' },
-        { label: 'My Recommended', value: 'recommended', type: 'movies' },
-        { label: 'Trending', value: 'trending', type: 'movies' },
-      ];
-    } else {
-      filterOptions = [
-        { label: 'Watch History', value: 'history', type: 'episodes' },
-        { label: 'My Recommended', value: 'recommended', type: 'shows' },
-        { label: 'Trending', value: 'trending', type: 'shows' },
-      ];
-    }
-    store.updateFilter(filterOptions[0]);
+    const filterOptions = {
+      movie: [
+        { label: 'Watch History', value: 'history' },
+        { label: 'My Recommended', value: 'recommended' },
+        { label: 'Trending', value: 'trending' },
+      ],
+      show: [
+        { label: 'Watch History', value: 'history' },
+        { label: 'My Recommended', value: 'recommended' },
+        { label: 'Trending', value: 'trending' },
+      ],
+    };
     return {
       store,
+      filterModel: ref(store.filter.label),
       filterOptions,
-      filterModel: ref(filterOptions[0]),
       autocompleteApiResults: ref([]),
-      searchOptions: ref([]),
       selectModel: ref(null),
-      showMenu: ref(false),
+      goneToDetails: ref(false),
       searchHasFocus: ref(false),
       searchTypedValue: ref(null),
       autocompleteTimer: ref(null),
     };
   },
-  methods: {
-    handleSearchBlur() {
-      if (!document.activeElement.className.includes('autocomplete-item')) this.showMenu = false;
+  computed: {
+    showMenu() {
+      return (
+        this.searchHasFocus === true &&
+        this.goneToDetails === false &&
+        this.autocompleteApiResults.length > 0
+      );
     },
-    changeFilter() {
+  },
+  methods: {
+    handleSearchFocus() {
+      this.searchHasFocus = true;
+    },
+    handleSearchBlur() {
+      if (!document.activeElement.className.includes('autocomplete-item')) {
+        this.searchHasFocus = false;
+      }
+    },
+    changeFilter(value) {
       this.store.updatePage(1);
-      this.store.updateFilter(this.filterModel);
-      this.$router.push({ path: '/tv' });
+      this.store.updateFilter(value);
+      this.$router.push({ path: this.store.filterType === 'movie' ? '/movie' : '/tv' });
     },
     async doSearch(value) {
       this.searchTypedValue = value;
@@ -170,7 +179,7 @@ export default {
                 ? `https://image.tmdb.org/t/p/w200/${result.poster_path}`
                 : fallbackPoster.default,
               year: dayjs(
-                result.media_type === 'movie' ? result.release_date : result.first_air_date,
+                result.media_type === 'movie' ? result.release_date : result.first_air_date
               ).format('YYYY'),
               genres: result.genres,
             });
@@ -179,16 +188,29 @@ export default {
       } else this.autocompleteApiResults = [];
     },
     async goToDetails(item) {
+      const mType = item.type === 'movie' ? 'movie' : 'show';
+      const urlTitle = item.ids.slug;
+      const params = {
+        [mType]: urlTitle,
+      };
+
+      this.searchTypedValue = null;
+      this.autocompleteApiResults = [];
+
+      if (mType === 'show' && item.episode) {
+        params.season = item.episode.season;
+        params.episode = item.episode.number;
+      }
       this.$router.push({
-        name: 'show-details',
-        params: { ids: JSON.stringify(item.ids), show: item.label },
+        name: `${mType}-details`,
+        params,
       });
     },
     goSearch(event) {
       if (this.searchTypedValue?.length > 0) {
         if (event.key?.toLowerCase() === 'enter' || event.type === 'click') {
+          this.searchTypedValue = null;
           this.autocompleteApiResults = [];
-          this.searchOptions = [];
           this.$router.push({ name: 'search', query: { term: this.searchTypedValue } });
         }
       }

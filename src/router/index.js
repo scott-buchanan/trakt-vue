@@ -7,6 +7,7 @@ import {
   getMyShowRatings,
   getMyEpisodeRatings,
   getMyMovieRatings,
+  getMyLikes,
 } from '@/api/trakt';
 
 const routes = [
@@ -33,6 +34,11 @@ const routes = [
     path: '/tv/:show',
     name: 'show-details',
     component: () => import(/* webpackChunkName: "TV" */ '../views/show-details.vue'),
+  },
+  {
+    path: '/movie/:movie',
+    name: 'movie-details',
+    component: () => import(/* webpackChunkName: "TV" */ '../views/movie-details.vue'),
   },
   {
     path: '/search',
@@ -100,6 +106,23 @@ router.beforeEach(async (to, from, next) => {
         const total = { ...myMovieRatings, ...remainingRatings };
         localStorage.setItem('trakt-vue-movie-ratings', JSON.stringify(total));
       });
+    }
+
+    // get likes
+    const myLikes = await getMyLikes(1);
+    const storedLikes = JSON.parse(localStorage.getItem('trakt-vue-likes'));
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
+    // need to add this check because this call needs token
+    if (storedLikes && storedLikes[0] !== myLikes[0]) {
+      if (storedLikes.length > 99) {
+        getMyLikes().then((remainingLikes) => {
+          const total = { ...myLikes, ...remainingLikes };
+          localStorage.setItem('trakt-vue-likes', JSON.stringify(total));
+        });
+      } else {
+        localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
+      }
     }
   } else if (urlParams.get('code')) {
     // if no tokens were present and we fell into the else, we get redirected

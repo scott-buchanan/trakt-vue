@@ -10,36 +10,40 @@
       >
         <q-img
           no-spinner
-          :src="item.backdrop_sm"
+          :src="item.backdrop.backdrop_sm"
           :alt="item[mType].title"
           fit="cover"
           :ratio="16 / 9"
         >
-          <div class="rating absolute-top-right">
+          <div class="rating absolute-top-right q-ma-sm">
             <div v-if="item.imdb_rating">
-              <img src="@/assets/imdb.svg" :alt="`IMDb rating ${item.imdb_rating}`" />
-              <span>{{ item.imdb_rating }}</span>
+              <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${item.imdb_rating}`" />
+              <div>{{ item.imdb_rating }}</div>
             </div>
             <div v-if="item.trakt_rating && item.trakt_rating !== '0.0'">
               <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
-              <span>{{ item.trakt_rating }}</span>
+              <div>{{ item.trakt_rating }}</div>
             </div>
             <div v-if="item.tmdb_rating && item.tmdb_rating !== '0.0'">
-              <img
-                src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg"
-                alt="The Movie DB"
-              />
-              <span>{{ item.tmdb_rating }}</span>
+              <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
+              <div>{{ item.tmdb_rating }}</div>
             </div>
             <div v-if="item.my_rating">
-              <q-avatar size="20px" class="block">
+              <q-avatar size="20px" class="q-mb-sm">
                 <q-img
+                  img-class="user-image"
                   :src="user?.images.avatar.full"
                   :alt="user?.name"
                   referrerpolicy="no-referrer"
                 />
               </q-avatar>
-              <span>{{ item.my_rating.rating }}</span>
+              <div>
+                {{
+                  item.my_rating.rating === 10
+                    ? item.my_rating.rating
+                    : item.my_rating.rating.toFixed(1)
+                }}
+              </div>
             </div>
           </div>
           <div
@@ -56,11 +60,13 @@
               <q-img no-spinner :src="item.clear_logo" fit="cover" alt="" />
             </div>
             <div v-else class="clearlogoNoImg flex items-center">
-              {{ item.show.title }}
+              {{ item[mType].title }}
             </div>
-            <div v-if="mType === 'episode'" class="title q-pl-sm">
-              <b>{{ item.episode.season }}x{{ item.episode.number.toString().padStart(2, '0') }}</b>
-              {{ item.episode.title }}
+            <div v-if="isEpisode" class="title q-pl-sm">
+              <b>
+                {{ item.episode?.season }}x{{ item.episode?.number.toString().padStart(2, '0') }}
+              </b>
+              {{ item.episode?.title }}
               <div class="watched-time">
                 <span>
                   <q-icon name="o_watch_later" />
@@ -82,7 +88,7 @@
                   {{ item.watchers }} people watching now
                 </q-tooltip>
               </span>
-              <span class="tags" v-for="genre in item.genres.slice(0, 4)" :key="genre.id">
+              <span class="tags" v-for="genre in item.genres?.slice(0, 4)" :key="genre.id">
                 <q-badge color="secondary" class="text-dark">
                   {{ genre.name }}
                 </q-badge>
@@ -98,6 +104,8 @@
 <script>
 import { ref } from 'vue';
 import dayjs from 'dayjs';
+// store
+import { useStore } from '@/store/index';
 
 export default {
   name: 'CardContainer',
@@ -112,9 +120,16 @@ export default {
     },
   },
   setup() {
+    const store = useStore();
     return {
       user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
+      store,
     };
+  },
+  computed: {
+    isEpisode() {
+      return this.store.filterType === 'show' && this.store.filter.value === 'history';
+    },
   },
   methods: {
     formattedDate(wDate) {
@@ -124,33 +139,26 @@ export default {
       return `${dayjs(wDate).format('MMM DD, YYYY')} at ${dayjs(wDate).format('h:mma')}`;
     },
     clickDetails(item) {
-      const urlTitle = item.show.title
-        .replace(/[^a-zA-Z ]/g, '')
-        .replace(/\s/g, '-')
-        .toLowerCase();
-      sessionStorage.setItem(
-        'trakt-vue-current-item',
-        JSON.stringify({ ...item, ...{ mType: this.mType } }),
-      );
-      if (this.mType === 'episode') {
-        this.$router.push({
-          name: 'episode-details',
-          params: { show: urlTitle, season: item.episode.season, episode: item.episode.number },
-          props: { data: item },
-        });
-      } else {
-        this.$router.push({
-          name: 'show-details',
-          params: { show: urlTitle },
-          props: { data: item },
-        });
+      const mType = item.type === 'movie' ? 'movie' : 'show';
+      const urlTitle = item[mType].ids.slug;
+      const params = {
+        [mType]: urlTitle,
+      };
+      if (item.type === 'episode') {
+        params.season = item.episode.season;
+        params.episode = item.episode.number;
       }
+      this.$router.push({
+        name: `${item.type}-details`,
+        params,
+      });
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&display=swap');
 .show-card {
   cursor: pointer;
   position: relative;
@@ -177,18 +185,19 @@ export default {
   height: 39px;
 }
 .rating {
-  padding: 10px;
-  & > div:first-child {
-    margin-top: 0;
-  }
-  & > div {
-    margin-top: 5px;
-  }
+  display: flex;
+  padding: 10px 20px;
   text-align: center;
-  & > div > img {
-    width: 20px;
+  line-height: 1em;
+  font-family: 'Comfortaa', cursive;
+  border-radius: 5px;
+  & > div:not(:last-child) {
+    margin-right: 10px;
+  }
+  & img {
+    height: 20px;
     display: block;
-    margin: 0 auto;
+    margin-bottom: 8px;
   }
 }
 .tags {

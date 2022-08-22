@@ -41,12 +41,34 @@
           </div>
         </q-img>
 
-        <q-list class="text-white">
+        <!-- <q-list dark>
+          <q-item-label header>TV Shows</q-item-label>
+
+          <q-item dense clickable color="secondary">
+            <q-item-section avatar>
+              <q-icon name="tv" />
+            </q-item-section>
+            <q-item-section class="gt-xs"> Trending </q-item-section>
+          </q-item>
+          <q-item dense clickable color="secondary">
+            <q-item-section avatar>
+              <q-icon name="tv" />
+            </q-item-section>
+            <q-item-section class="gt-xs"> Watched History </q-item-section>
+          </q-item>
+          <q-item dense clickable color="secondary">
+            <q-item-section avatar>
+              <q-icon name="tv" />
+            </q-item-section>
+            <q-item-section class="gt-xs"> Recommended by me </q-item-section>
+          </q-item>
+        </q-list> -->
+        <q-list dark>
           <q-item
             clickable
             active-class="bg-secondary text-dark"
-            :active="link === 'tv'"
-            @click="goToPage('tv')"
+            :active="store.filterType === 'show'"
+            @click="goToPage('show')"
           >
             <q-item-section avatar>
               <q-icon name="tv" />
@@ -57,7 +79,7 @@
           <q-item
             clickable
             active-class="bg-secondary text-dark"
-            :active="link === 'movie'"
+            :active="store.filterType === 'movie'"
             @click="goToPage('movie')"
           >
             <q-item-section avatar>
@@ -120,7 +142,6 @@ export default {
     const store = useStore();
     return {
       drawer: ref(true),
-      link: ref('tv'),
       store,
       myInfo: ref(store.myInfo),
       loaded: ref(false),
@@ -143,8 +164,10 @@ export default {
   },
   methods: {
     goToPage(page) {
-      this.link = page;
-      this.$router.push({ name: page });
+      const pathName = page === 'movie' ? 'movie' : 'tv';
+      this.store.updateFilterType(page);
+      this.store.updateLoading(false);
+      this.$router.push({ name: pathName });
     },
   },
 };
@@ -162,12 +185,21 @@ body {
   color: white;
   overflow: overlay;
 }
+a,
+a:visited,
+a:active {
+  text-decoration: none;
+  color: $accent !important;
+}
+a:hover {
+  text-decoration: underline;
+}
 h1 {
   font-size: 24px !important;
   line-height: 1 !important;
 }
 h2 {
-  font-size: 18px !important;
+  font-size: 24px !important;
   line-height: 1 !important;
 }
 a,

@@ -1,6 +1,6 @@
 <template>
   <div :class="['full-height', 'tv-container']" v-if="loaded">
-    <CardContainer :data="data?.items" :mType="filter.type.slice(0, -1)" />
+    <CardContainer :data="data?.items" :mType="store.filterType" />
   </div>
   <q-footer v-if="loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
     <q-toolbar class="flex flex-center">
@@ -23,8 +23,8 @@
 <script>
 import { ref } from 'vue';
 // api
-import { getWatchedHistory, getRecommendationsFromMe, getTrendingShows } from '@/api/trakt';
-import { getInfo, getEpisodeInfo } from '@/api/tmdb';
+import { getWatchedHistory, getRecommendationsFromMe, getTrending } from '@/api/trakt';
+import { getEpisodeInfoCard, getShowInfoCard } from '@/api/combinedCalls';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -40,17 +40,17 @@ export default {
       filter: ref(store.filter),
       loaded: ref(false),
       maxPages: ref(10),
-      myEpRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'))),
-      myShowRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-show-ratings'))),
-      page: ref(1),
+      myEpRatings: ref(null),
+      myShowRatings: ref(null),
+      page: ref(store.page),
       store,
-      tokens: ref(null),
+      tokens: ref(store.tokens),
     };
   },
   async created() {
     this.store.$subscribe((mutated, state) => {
       let loadData = false;
-      if (this.filter !== state.filter) {
+      if (state.filter && this.filter !== state.filter) {
         loadData = true;
       }
 
@@ -61,6 +61,8 @@ export default {
 
       if (loadData) this.loadData();
     });
+
+    this.store.updateFilterType('show');
 
     // we set tokens in beforeEach in router so loadData should never have missing tokens
     this.loadData();
@@ -81,51 +83,35 @@ export default {
       // this makes it so the card container always has a full last line
       localStorage.setItem('item-limit', this.screenGreaterThan.lg ? 21 : 20);
 
-      if (this.filter.type === 'episodes') {
+      if (this.store.filterType === 'show' && this.filter.value === 'history') {
         // get Trakt data
-        this.data = await getWatchedHistory(this.filter.type, this.page);
+        this.data = await getWatchedHistory('episodes', this.page);
 
+        // get episode ratings object from local storage
         this.myEpRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
 
         // get images and ratings
-        const items = [];
-        await Promise.all(
-          this.data.items.map(async (item) => {
-            const images = await getEpisodeInfo(item.show, item.episode);
-            const myRating = {};
-            myRating.my_rating = this.myEpRatings.ratings.find(
-              (rating) => rating.episode.ids.trakt === item.episode.ids.trakt,
-            );
-            items.push({ ...item, ...images, ...myRating });
-          }),
-        );
+        const items = await this.fetchCardInfo('episode', this.myEpRatings);
 
+        // sort by watched date (no logic here because only one filter)
         items.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at));
+
         this.data.items = [...items];
       } else {
         switch (this.filter.value) {
           case 'recommended':
-            this.data = await getRecommendationsFromMe(this.filter.type, this.page);
+            this.data = await getRecommendationsFromMe('shows', this.page);
             break;
           default:
             // default to trending
-            this.data = await getTrendingShows(this.page);
+            this.data = await getTrending('shows', this.page);
         }
 
+        // get show ratings object from local storage
         this.myShowRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
 
         // get images and ratings
-        const items = [];
-        await Promise.all(
-          this.data.items.map(async (item) => {
-            const images = await getInfo('tv', item.show.ids);
-            const myRating = {};
-            myRating.my_rating = this.myShowRatings.ratings.find(
-              (rating) => !('episode' in rating) && rating.show.ids.trakt === item.show.ids.trakt,
-            );
-            items.push({ ...item, ...images, ...myRating });
-          }),
-        );
+        const items = await this.fetchCardInfo('show', this.myShowRatings);
 
         if (this.filter.value === 'recommended') {
           items.sort((a, b) => a.rank - b.rank);
@@ -136,6 +122,26 @@ export default {
         this.data.items = [...items];
       }
       this.store.updateLoading(true);
+    },
+    async fetchCardInfo(mType, ratingsObj) {
+      const items = [];
+      await Promise.all(
+        this.data.items.map(async (item) => {
+          const cardInfo =
+            mType === 'show'
+              ? await getShowInfoCard(item.show)
+              : await getEpisodeInfoCard(item.show, item.episode);
+          const myRating = {};
+          myRating.my_rating = ratingsObj.ratings.find((rating) => {
+            if (mType === 'show') {
+              return !('episode' in rating) && rating.show.ids.trakt === item.show.ids.trakt;
+            }
+            return rating.episode.ids.trakt === item.episode.ids.trakt;
+          });
+          items.push({ ...item, ...cardInfo, ...myRating });
+        })
+      );
+      return items;
     },
     changePage() {
       this.loadData();

@@ -36,7 +36,22 @@ export async function getBanner(showId) {
   }
 }
 
-export async function getTvThumb(showId) {
+export async function getTvBackground(showId) {
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `https://webservice.fanart.tv/v3/tv/${showId}?api_key=6c7b80e914b8b4a7f630895236272ee0`,
+    });
+    if (response.data.showbackground.length < 1) {
+      return response.data.tvthumb[0].url;
+    }
+    return response.data.showbackground[0].url;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getMovieBackground(showId) {
   try {
     const response = await axios({
       method: 'GET',

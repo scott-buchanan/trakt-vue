@@ -1,64 +1,68 @@
 <template>
-  <div v-if="horizontal" class="actors-container-small">
-    <div class="q-pa-md full-height">
-      <h1 class="q-mb-none q-mt-auto">Starring</h1>
-      <q-scroll-area dark class="full-height">
-        <div :class="['flex', 'no-wrap', 'q-pb-sm']">
-          <div
-            :class="['actor-small', { 'q-mr-md': index !== actors.length - 1 }]"
-            v-for="(actor, index) in actors"
-            :key="actor.person.ids.trakt"
-          >
-            <a
-              v-if="actor.person.ids.imdb"
-              :href="`https://imdb.com/name/${actor.person.ids.imdb}`"
-              target="blank"
+  <template v-if="actors.length > 0">
+    <div v-if="horizontal" class="actors-container-small">
+      <div :class="['q-pa-md', 'full-height']">
+        <h1 :class="['q-mb-none', 'q-mt-auto']">Starring</h1>
+        <q-scroll-area dark class="full-height">
+          <div :class="['flex', 'no-wrap', 'q-pb-sm']">
+            <div
+              :class="['actor-small', { 'q-mr-md': index !== actors.length - 1 }]"
+              v-for="(actor, index) in actors"
+              :key="actor.ids.trakt"
             >
-              <q-img class="q-my-sm" :src="actor.image" :alt="actor.person.name">
-                <div :class="['actor-image-text', 'absolute-bottom', 'q-pa-sm-ov']">
-                  {{ actor.person.name }}
-                </div>
-              </q-img>
-            </a>
-            <div class="actor-image-text">
-              <template v-for="(character, index) in actor.characters" :key="character">
-                {{ character }}{{ index !== actor.characters.length - 1 ? ' / ' : '' }}
-              </template>
+              <a
+                v-if="actor.ids.imdb"
+                :href="`https://imdb.com/name/${actor.ids.imdb}`"
+                target="blank"
+              >
+                <q-img
+                  :class="['actor-image', 'q-my-sm']"
+                  :src="actor.profile_path"
+                  :alt="actor.name"
+                >
+                  <div :class="['actor-image-text small', 'absolute-bottom', 'q-pa-sm-ov']">
+                    {{ actor.name }}
+                  </div>
+                </q-img>
+              </a>
+              <div :class="['actor-image-text', 'small']">
+                {{ actor.character }}
+              </div>
+              <q-tooltip :delay="500" anchor="top middle" self="center middle">
+                {{ getActorTooltip(actor) }}
+              </q-tooltip>
             </div>
-            <q-tooltip :delay="500" anchor="top middle" self="center middle">
-              {{ getActorTooltip(actor) }}
-            </q-tooltip>
           </div>
-        </div>
-      </q-scroll-area>
+        </q-scroll-area>
+      </div>
     </div>
-  </div>
-  <div v-else class="actors-container text-white q-pl-sm">
-    <q-scroll-area class="full-height full-width q-pa-sm" :thumb-style="{ opacity: 0.5 }">
-      <h1 class="q-mb-none q-mt-auto">Starring</h1>
-      <div class="actor" v-for="actor in actors" :key="actor.person.ids.trakt">
-        <a
-          v-if="actor.person.ids.imdb"
-          :href="`https://imdb.com/name/${actor.person.ids.imdb}`"
-          target="blank"
-        >
-          <q-img class="q-my-sm" :src="actor.image" :alt="actor.person.name">
-            <div class="actor-image-text absolute-bottom q-pa-xs">
-              {{ actor.person.name }}
+    <div v-else :class="['actors-container', 'text-white', 'q-pl-sm']">
+      <q-scroll-area
+        :class="['full-height', 'full-width', 'q-pa-sm']"
+        :thumb-style="{ opacity: 0.5 }"
+      >
+        <h1 :class="['q-mb-none', 'q-mt-auto']">Starring</h1>
+        <div v-for="actor in actors" :key="actor.ids.trakt">
+          <a v-if="actor.ids.imdb" :href="`https://imdb.com/name/${actor.ids.imdb}`" target="blank">
+            <q-img :class="['actor-image', 'q-my-sm']" :src="actor.profile_path" :alt="actor.name">
+              <div :class="['actor-image-text', 'padding', 'absolute-bottom']">
+                {{ actor.name }}
+              </div>
+            </q-img>
+          </a>
+          <q-img v-else class="q-my-sm" :src="actor.profile_path" :alt="actor.name">
+            <div :class="['actor-image-text', 'padding', 'absolute-bottom']">
+              {{ actor.name }}
             </div>
           </q-img>
-        </a>
-        <q-img v-else class="q-my-sm" :src="actor.image" :alt="actor.person.name">
-          <div class="actor-image-text absolute-bottom q-pa-xs">
-            {{ actor.person.name }}
-          </div>
-        </q-img>
-        <span v-for="(character, index) in actor.characters" :key="character">
-          {{ character }}{{ index !== actor.characters.length - 1 ? ' / ' : '' }}
-        </span>
-      </div>
-    </q-scroll-area>
-  </div>
+          <span>
+            {{ actor.character }}
+          </span>
+        </div>
+        <q-btn label="See All" :class="['full-width', 'q-mt-sm']" :ripple="false" />
+      </q-scroll-area>
+    </div>
+  </template>
 </template>
 
 <script>
@@ -76,11 +80,7 @@ export default {
   },
   methods: {
     getActorTooltip(actor) {
-      let tooltip = `${actor.person.name} as `;
-      actor.characters.forEach((character) => {
-        tooltip += `${character}/`;
-      });
-      return tooltip.slice(0, -1);
+      return `${actor.name} as ${actor.character}`;
     },
   },
 };
@@ -93,15 +93,21 @@ export default {
   & > div {
     @include background-style;
   }
-  & .actor > div {
-    border-radius: 5px;
-  }
+}
+.actor-image {
+  border-radius: 5px;
 }
 .actor-image-text {
-  font-size: 0.75em;
+  font-size: 0.85em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  &.small {
+    font-size: 0.75em;
+  }
+  &.padding {
+    padding: 10px;
+  }
 }
 .actors-container-small {
   height: 230px;

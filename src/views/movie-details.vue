@@ -2,7 +2,7 @@
   <DetailsTemplate
     v-if="loaded"
     :info="info"
-    :poster="info.show_poster"
+    :poster="info.poster"
     :title="info.title"
     :subTitle="info.year"
     :technicalDetails="arrDetails"
@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 // store
 import { useStore } from '@/store/index';
 // api
-import { getShowDetails } from '@/api/combinedCalls';
+import { getMovieDetails } from '@/api/combinedCalls';
 // components
 import DetailsTemplate from '@/components/DetailsTemplate.vue';
 
@@ -28,7 +28,6 @@ export default {
       info: ref({}),
       arrDetails: ref([]),
       loaded: ref(false),
-      // watchedProgress: ref(0),
       store,
     };
   },
@@ -38,17 +37,17 @@ export default {
     });
 
     this.store.updateLoading(false);
-    this.store.updateFilterType('show');
+    this.store.updateFilterType('movie');
 
     await this.getData();
 
     this.store.updateLoading(true);
   },
   async updated() {
-    if (this.info && this.$route.params.show) {
-      const params = this.$route.params.show;
-      const showId = this.info.show.ids.slug;
-      if (showId !== params) {
+    if (this.info && this.$route.params.movie) {
+      const params = this.$route.params.movie;
+      const movieId = this.info.ids.slug;
+      if (movieId !== params) {
         await this.getData();
       }
     }
@@ -62,13 +61,13 @@ export default {
       }
       return strLang;
     },
-    genreListString() {
-      const { genres } = this.info.tmdb_data;
-      let strGenres = '';
-      for (let i = 0; i < genres.length; i += 1) {
-        strGenres += `${genres[i].name}${i !== genres.length - 1 ? ', ' : ''}`;
+    PCListString() {
+      const pcs = this.info.tmdb_data.production_companies;
+      let strPC = '';
+      for (let i = 0; i < pcs.length; i += 1) {
+        strPC += `${pcs[i].name}${i !== pcs.length - 1 ? ', ' : ''}`;
       }
-      return strGenres;
+      return strPC;
     },
     detailsBackground() {
       return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
@@ -84,17 +83,31 @@ export default {
     async getData() {
       this.store.updateLoading(false);
 
-      this.info = await getShowDetails(this.$route.params.show);
-      console.log(this.info);
+      this.info = await getMovieDetails(this.$route.params.movie);
+
       this.arrDetails = [
-        { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
-        { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },
         { label: 'runtime', value: `${this.info.runtime} minutes` },
-        { label: 'genres', value: this.genreListString },
-        { label: 'first aired', value: this.formattedDate(this.info.first_aired) },
+        { label: 'released', value: `${this.formattedDate(this.info.released)}` },
+        { label: 'in', value: this.info.tmdb_data.belongs_to_collection?.name },
         { label: 'country', value: this.info.country.toUpperCase() },
-        { label: 'network', value: this.info.network },
         { label: 'languages', value: this.languageListString },
+        {
+          label: 'budget',
+          value: new Intl.NumberFormat('en-CA', {
+            style: 'currency',
+            maximumFractionDigits: 0,
+            currency: 'CAD',
+          }).format(this.info.tmdb_data.budget),
+        },
+        {
+          label: 'revenue',
+          value: new Intl.NumberFormat('en-CA', {
+            style: 'currency',
+            maximumFractionDigits: 0,
+            currency: 'CAD',
+          }).format(this.info.tmdb_data.revenue),
+        },
+        { label: 'production companies', value: this.PCListString },
       ];
 
       this.store.updateLoading(true);

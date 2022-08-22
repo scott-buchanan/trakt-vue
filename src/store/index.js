@@ -7,7 +7,8 @@ export const useStore = defineStore('main', {
   state: () => ({
     data: null,
     page: 1,
-    filter: null,
+    filter: { label: 'Watched History', value: 'history' },
+    filterType: null,
     loaded: false,
     tokens: null,
     myInfo: null,
@@ -21,6 +22,9 @@ export const useStore = defineStore('main', {
     },
     updateFilter(filter) {
       this.filter = filter;
+    },
+    updateFilterType(type) {
+      this.filterType = type;
     },
     updateLoading(loaded) {
       this.loaded = loaded;

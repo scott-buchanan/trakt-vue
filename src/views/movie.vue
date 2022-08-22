@@ -1,6 +1,6 @@
 <template>
   <div :class="['full-height', 'tv-container']" v-if="loaded">
-    <card-container :data="data?.items" :mType="filter.type.slice(0, -1)" />
+    <CardContainer :data="data?.items" mType="movie" />
   </div>
   <q-footer v-if="loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
     <q-toolbar class="flex flex-center">
@@ -23,8 +23,8 @@
 <script>
 import { ref } from 'vue';
 // api
-import { getWatchedHistory, getRecommendationsFromMe } from '@/api/trakt';
-import { getInfo } from '@/api/tmdb';
+import { getWatchedHistory, getRecommendationsFromMe, getTrending } from '@/api/trakt';
+import { getMovieInfoCard } from '@/api/combinedCalls';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -32,16 +32,15 @@ import CardContainer from '@/components/CardContainer.vue';
 
 export default {
   components: { CardContainer },
-  name: 'movie',
+  name: 'MovieView',
   setup() {
     const store = useStore();
     return {
       data: ref({}),
-      filter: ref(store.filter),
+      filter: ref(store.filter.value),
       loaded: ref(false),
       maxPages: ref(10),
-      myEpRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'))),
-      myShowRatings: ref(JSON.parse(localStorage.getItem('trakt-vue-show-ratings'))),
+      myMovieRatings: ref(null),
       page: ref(1),
       store,
       tokens: ref(null),
@@ -62,6 +61,8 @@ export default {
       if (loadData) this.loadData();
     });
 
+    this.store.updateFilterType('movie');
+
     // we set tokens in beforeEach in router so loadData should never have missing tokens
     this.loadData();
 
@@ -78,39 +79,51 @@ export default {
     async loadData() {
       this.store.updateLoading(false);
 
-      // this makes it so the card container always has a full last row
+      // this makes it so the card container always has a full last line
       localStorage.setItem('item-limit', this.screenGreaterThan.lg ? 21 : 20);
 
-      switch (this.filter.value) {
-        case 'trending':
-          this.data = await getRecommendationsFromMe(this.filter.type, this.page);
+      switch (this.store.filter.value) {
+        case 'history':
+          this.data = await getWatchedHistory('movies', this.page);
+          break;
+        case 'recommended':
+          this.data = await getRecommendationsFromMe('movies', this.page);
           break;
         default:
-          this.data = await getWatchedHistory(this.filter.type, this.page);
+          // default to trending
+          this.data = await getTrending('movies', this.page);
       }
 
+      // get movie ratings object from local storage
       this.myMovieRatings = JSON.parse(localStorage.getItem('trakt-vue-movie-ratings'));
-      // get images and ratings
-      const items = [];
-      await Promise.all(
-        this.data.items.map(async (item) => {
-          const images = await getInfo('movie', item.movie.ids);
-          const myRating = {};
-          myRating.my_rating = this.myMovieRatings.ratings.find(
-            (rating) => rating.movie.ids.trakt === item.movie.ids.trakt,
-          );
-          items.push({ ...item, ...images, ...myRating });
-        }),
-      );
 
-      // if (this.filter.value === 'recommended') {
-      //   items.sort((a, b) => a.rank - b.rank);
-      // } else if (this.filter === 'trending') {
+      // get images and ratings
+      const items = await this.fetchCardInfo(this.myMovieRatings);
+
+      if (this.store.filter.value === 'history') {
+        items.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at));
+      }
+      // } else if (this.filter.value === 'trending') {
       //   items.sort((a, b) => b.watchers - a.watchers);
       // }
 
       this.data.items = [...items];
+
       this.store.updateLoading(true);
+    },
+    async fetchCardInfo(ratingsObj) {
+      const items = [];
+      await Promise.all(
+        this.data.items.map(async (item) => {
+          const cardInfo = await getMovieInfoCard(item.movie);
+          const myRating = {};
+          myRating.my_rating = ratingsObj.ratings.find(
+            (rating) => rating.movie.ids.trakt === item.movie.ids.trakt
+          );
+          items.push({ ...item, ...cardInfo, ...myRating });
+        })
+      );
+      return items;
     },
     changePage() {
       this.loadData();

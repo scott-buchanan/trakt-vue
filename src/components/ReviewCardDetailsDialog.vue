@@ -48,13 +48,15 @@
           </q-item-label>
         </q-item-section>
       </q-item>
-      <q-scroll-area :style="{ height: getReviewHeight() }" dark>
-        <q-item class="q-pa-md">
-          <q-item-section ref="reviewDiv">
-            {{ formatReview(data.review.comment) }}
-          </q-item-section>
-        </q-item>
-      </q-scroll-area>
+      <div class="q-pb-md">
+        <q-scroll-area :style="{ height: getReviewHeight(), maxHeight: '400px' }" dark>
+          <q-item class="q-px-md q-pt-md">
+            <q-item-section ref="reviewDiv">
+              {{ formatReview(data.review.comment) }}
+            </q-item-section>
+          </q-item>
+        </q-scroll-area>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -114,10 +116,10 @@ export default {
 
 <style lang="scss" scoped>
 .review-card {
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 1);
   overflow: hidden;
   width: 100%;
-  box-shadow: 0px 0px 80px 0px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 0px 50px -10px rgba(255, 255, 255, 0.8);
   & > div:nth-child(3) {
     margin-top: -40px;
   }
