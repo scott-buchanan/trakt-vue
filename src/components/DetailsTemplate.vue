@@ -37,8 +37,8 @@
                     <div v-if="info.certification" :class="['certification', 'q-mr-sm', 'q-mb-md']">
                       {{ info.certification }}
                     </div>
-                    <div v-if="info.tagline" :class="['tagline', 'q-mb-md']">
-                      - "{{ info.tagline }}"
+                    <div v-if="info.tmdb_data?.tagline" :class="['tagline', 'q-mb-md']">
+                      - "{{ info.tmdb_data.tagline }}"
                     </div>
                   </div>
                   <div v-if="info.tmdb_data?.genres" class="q-mb-md">

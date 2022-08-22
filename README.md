@@ -5,17 +5,17 @@ Personal project to get more familiar with Vue 3. Using Trakt, TMDB, fanart, OMD
 - View Trakt trending shows/movies
 - View Trakt shows recommended by you
 - View episode watched history
-- Search for TV Shows and Movies (with autocomplete)
+- Search for TV Shows and Movies (with autocomplete). This includes autocomplete dropdown as well as a search page with results if you hit enter to search.
 - Rate episodes, shows, movies (Trakt)
-- Read Reviews for episodes, shows, movies
+- Read Reviews (and replies) for episodes, shows, movies
 - View list of actors for episodes, shows, movies
+- View watched progress of TV shows (overall and per season)
+- Mobile support (this will be ongoing as things change)
 
 ## Upcoming features
-- Movies (WIP)
-- Mobile support
+- TV Show seasons section, list episodes per season with details, watched status, ability to rate, set watched etc.
 - Write reviews
 - Rate episode/show/movie will also push to TMDB
-- List seasons in TV Show details
 - Actors section (instead of linking off to IMDb)
 
 More will be added to this list as I think of things to add. 
