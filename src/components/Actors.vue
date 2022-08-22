@@ -1,9 +1,9 @@
 <template>
   <template v-if="actors.length > 0">
     <div v-if="horizontal" class="actors-container-small">
-      <div :class="['q-pa-md', 'full-height']">
+      <div :class="['full-height']">
         <h1 :class="['q-mb-none', 'q-mt-auto']">Starring</h1>
-        <q-scroll-area dark class="full-height">
+        <q-scroll-area :style="{ height: '200px' }" dark>
           <div :class="['flex', 'no-wrap', 'q-pb-sm']">
             <div
               :class="['actor-small', { 'q-mr-md': index !== actors.length - 1 }]"

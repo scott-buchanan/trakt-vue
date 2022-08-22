@@ -156,16 +156,16 @@
                     </div>
                   </div>
                 </div>
+                <Actors
+                  v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
+                  :actors="info.actors"
+                  horizontal
+                />
                 <Reviews :reviews="info.reviews" :reviewCount="info.comment_count" />
               </div>
             </div>
           </div>
         </div>
-        <Actors
-          v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
-          :actors="info.actors"
-          horizontal
-        />
       </q-scroll-area>
       <Actors v-if="screenGreaterThan.sm && info.actors?.length > 0" :actors="info.actors" />
     </div>
