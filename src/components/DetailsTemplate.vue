@@ -10,235 +10,221 @@
       >
         <div :class="['flex', 'no-wrap', 'q-pa-md']">
           <div v-if="screenGreaterThan.md" :class="['poster', 'q-pr-md']">
-            <div class="relative-position">
-              <router-link
-                v-if="mType === 'episode'"
-                :to="{
-                  name: 'season-details',
-                  params: {
-                    show: info.show.ids.slug,
-                    season: info.season,
-                  },
-                }"
-              >
-                <q-img :src="poster" alt="" />
-              </router-link>
-              <q-img v-else :src="poster" alt="" />
-            </div>
+            <router-link
+              v-if="mType === 'episode'"
+              :to="{
+                name: 'season-details',
+                params: {
+                  show: info.show.ids.slug,
+                  season: info.season,
+                },
+              }"
+            >
+              <q-img :src="poster" alt="" />
+            </router-link>
+            <q-img v-else :src="poster" alt="" />
           </div>
-          <div :class="['flex', 'full-width']">
-            <div class="col-grow">
-              <div class="flex no-wrap">
-                <div v-if="screenGreaterThan.md === false" class="q-pr-md q-pb-md">
-                  <router-link
-                    v-if="mType === 'episode'"
-                    :to="{
-                      name: 'season-details',
-                      params: {
-                        show: info.show.ids.slug,
-                        season: info.season,
-                      },
-                    }"
-                  >
-                    <q-img
-                      class="poster-small"
-                      width="12vw"
-                      :ratio="1 / 1.5"
-                      :src="poster"
-                      alt=""
-                    />
-                  </router-link>
-                  <q-img
-                    v-else
-                    class="poster-small"
-                    width="12vw"
-                    :ratio="1 / 1.5"
-                    :src="poster"
-                    alt=""
-                  />
-                </div>
-                <div class="titles full-width">
-                  <router-link
-                    v-if="mType === 'episode' || mType === 'season'"
-                    :to="{ name: 'show-details', params: { show: info.show.ids.slug } }"
-                  >
-                    <q-img
-                      role="heading"
-                      aria-level="1"
-                      v-if="info.clear_logo && screenGreaterThan.xs"
-                      class="show-logo"
-                      :src="info.clear_logo"
-                      :alt="title"
-                    />
-                    <h1 v-else>{{ title }}</h1>
-                  </router-link>
-                  <template v-else>
-                    <q-img
-                      role="heading"
-                      aria-level="1"
-                      v-if="info.clear_logo && screenGreaterThan.xs"
-                      class="show-logo"
-                      :src="info.clear_logo"
-                      :alt="title"
-                    />
-                    <h1 v-else>{{ title }}</h1>
-                  </template>
-                  <div v-if="subTitle" :class="['sub-title', 'q-mt-sm']">
-                    <div :class="['q-mb-md', 'q-mr-sm']">
-                      {{ subTitle }}
-                    </div>
-                    <div v-if="info.certification" :class="['certification', 'q-mr-sm', 'q-mb-md']">
-                      {{ info.certification }}
-                    </div>
-                    <div v-if="info.tmdb_data?.tagline" :class="['tagline', 'q-mb-md']">
-                      - "{{ info.tmdb_data.tagline }}"
-                    </div>
-                  </div>
-                  <div v-if="info.tmdb_data?.genres" class="q-mb-md">
-                    <span class="tags" v-for="genre in info.tmdb_data.genres" :key="genre.id">
-                      <q-badge color="secondary" class="text-dark">
-                        {{ genre.name }}
-                      </q-badge>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="flex no-wrap">
-                <div :class="['flex', 'q-mb-md', 'info']">
-                  <div v-for="item in technicalDetails" :key="item.value">
-                    <template v-if="item.label !== 'production companies' && item.value">
-                      <span>{{ item.label }}: </span>{{ item.value }}
-                    </template>
-                    <template v-else-if="item.value">
-                      <span>{{ item.label }}: </span>{{ truncateDetails(item.value) }}
-                      <a href="javascript:" @click="seeMoreDetails = !seeMoreDetails">{{
-                        seeMoreDetails ? 'See less' : 'See more'
-                      }}</a>
-                    </template>
-                  </div>
-                </div>
-                <q-space />
-                <div v-show="info.watched_progress">
-                  <q-knob
-                    readonly
-                    :max="1"
-                    v-model="watchedProgress"
-                    show-value
-                    size="50px"
-                    :thickness="0.2"
-                    color="secondary"
-                    track-color="grey-8"
-                    class="text-white"
-                  >
-                    <q-icon name="check_circle_outline" size="sm" color="positive" />
-                  </q-knob>
-                  <q-tooltip :delay="500">
-                    {{ watchedPercent }}
-                  </q-tooltip>
-                </div>
-              </div>
-              <div class="ratings">
-                <div v-if="info.imdb_rating">
-                  <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${info.imdb_rating}`" />
-                  <div>{{ info.imdb_rating }}</div>
-                </div>
-                <div v-if="info.trakt_rating && info.trakt_rating !== '0.0'">
-                  <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
-                  <div>{{ info.trakt_rating }}</div>
-                </div>
-                <div v-if="info.tmdb_rating && info.tmdb_rating !== '0.0'">
-                  <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
-                  <div>{{ info.tmdb_rating }}</div>
-                </div>
-                <div>
-                  <Rating :item="info" :rating="info.my_rating" />
-                </div>
-                <div v-if="info.trailer">
-                  <q-btn
-                    icon="slideshow"
-                    label="Trailer"
-                    color="secondary"
-                    dense
-                    flat
-                    @click="showTrailer = true"
-                  />
-                </div>
-              </div>
-              <div>
-                <p class="q-mb-lg">{{ info.overview }}</p>
-                <!-- list show seasons -->
-                <div v-if="mType === 'show'">
-                  <h2>
-                    {{ seasonLength }}
-                    {{ seasonLength > 1 ? 'Seasons' : 'Season' }}
-                  </h2>
-                  <div class="seasons">
-                    <div v-for="(season, index) in seasons" :key="season.id">
-                      <router-link
-                        class="relative-position"
-                        :to="{
-                          name: 'season-details',
-                          params: { show: $route.params.show, season: season.season_number },
-                        }"
-                      >
-                        <q-img
-                          width="150px"
-                          :ratio="1 / 1.5"
-                          :src="season.poster_path"
-                          :alt="season.name"
-                        >
-                          <div
-                            v-if="season.name.toLowerCase() !== 'specials'"
-                            class="season-watched"
-                          >
-                            <q-knob
-                              readonly
-                              :max="1"
-                              :model-value="seasons[index]?.watched_progress"
-                              show-value
-                              size="30px"
-                              :thickness="0.2"
-                              color="secondary"
-                              track-color="grey-9"
-                              class="text-white"
-                            >
-                              <q-icon name="check_circle_outline" size="xs" color="positive" />
-                            </q-knob>
-                            <q-tooltip>
-                              {{ seasons[index]?.watched_percent }}
-                            </q-tooltip>
-                          </div>
-                          <div :class="['season-caption', 'absolute-bottom']">
-                            {{ season.name }}
-                          </div>
-                        </q-img>
-                      </router-link>
-                    </div>
-                  </div>
-                </div>
-                <!-- List episodes in season -->
-                <div v-if="mType === 'season'">
-                  <h1>{{ info.tmdb_data?.episodes.length }} Episodes</h1>
-                  <div class="row">
-                    <ItemCard
-                      episode
-                      v-for="episode in info.tmdb_data?.episodes"
-                      :key="episode.name"
-                      :title="episodeTitle(episode)"
-                      :poster="episode.backdrop.backdrop_sm"
-                      :overview="episode.overview"
-                      :backdrop="episode.backdrop.backdrop_lg"
-                      @click="handleEpisodeClick(episode)"
-                    />
-                  </div>
-                </div>
-                <Actors
-                  v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
-                  :actors="info.actors"
-                  horizontal
+          <div>
+            <div :class="['flex', { 'no-wrap': screenGreaterThan.xs }]">
+              <div v-if="screenGreaterThan.md === false" class="float-left q-pr-md q-pb-md">
+                <router-link
+                  v-if="mType === 'episode'"
+                  :to="{
+                    name: 'season-details',
+                    params: {
+                      show: info.show.ids.slug,
+                      season: info.season,
+                    },
+                  }"
+                >
+                  <q-img class="poster-small" width="20vw" :ratio="1 / 1.5" :src="poster" alt="" />
+                </router-link>
+                <q-img
+                  v-else
+                  class="poster-small"
+                  width="16vw"
+                  :ratio="1 / 1.5"
+                  :src="poster"
+                  alt=""
                 />
-                <Reviews :reviews="info.reviews" :reviewCount="info.comment_count" />
               </div>
+              <div class="titles">
+                <router-link
+                  v-if="mType === 'episode' || mType === 'season'"
+                  :to="{ name: 'show-details', params: { show: info.show.ids.slug } }"
+                >
+                  <q-img
+                    role="heading"
+                    aria-level="1"
+                    v-if="info.clear_logo && screenGreaterThan.xs"
+                    class="show-logo"
+                    :src="info.clear_logo"
+                    :alt="title"
+                  />
+                  <h1 v-else>{{ title }}</h1>
+                </router-link>
+                <template v-else>
+                  <q-img
+                    role="heading"
+                    aria-level="1"
+                    v-if="info.clear_logo && screenGreaterThan.xs"
+                    class="show-logo"
+                    :src="info.clear_logo"
+                    :alt="title"
+                  />
+                  <h1 v-else>{{ title }}</h1>
+                </template>
+                <div v-if="subTitle" :class="['sub-title', 'q-mt-sm']">
+                  <div :class="['q-mb-md', 'q-mr-sm']">
+                    {{ subTitle }}
+                  </div>
+                  <div v-if="info.certification" :class="['certification', 'q-mr-sm', 'q-mb-md']">
+                    {{ info.certification }}
+                  </div>
+                  <div v-if="info.tmdb_data?.tagline" :class="['tagline', 'q-mb-md']">
+                    - "{{ info.tmdb_data.tagline }}"
+                  </div>
+                </div>
+                <div v-if="info.tmdb_data?.genres" class="q-mb-md">
+                  <span class="tags" v-for="genre in info.tmdb_data.genres" :key="genre.id">
+                    <q-badge color="secondary" class="text-dark">
+                      {{ genre.name }}
+                    </q-badge>
+                  </span>
+                </div>
+                <div class="flex no-wrap">
+                  <div :class="['flex', 'q-mb-md', 'info']">
+                    <div v-for="item in technicalDetails" :key="item.value">
+                      <template v-if="item.label !== 'production companies' && item.value">
+                        <span>{{ item.label }}: </span>{{ item.value }}
+                      </template>
+                      <template v-else-if="item.value">
+                        <span>{{ item.label }}: </span>{{ truncateDetails(item.value) }}
+                        <a href="javascript:" @click="seeMoreDetails = !seeMoreDetails">{{
+                          seeMoreDetails ? 'See less' : 'See more'
+                        }}</a>
+                      </template>
+                    </div>
+                  </div>
+                  <q-space />
+                  <div v-show="info.watched_progress">
+                    <q-knob
+                      readonly
+                      :max="1"
+                      v-model="watchedProgress"
+                      show-value
+                      size="50px"
+                      :thickness="0.2"
+                      color="secondary"
+                      track-color="grey-8"
+                      class="text-white"
+                    >
+                      <q-icon name="check_circle_outline" size="sm" color="positive" />
+                    </q-knob>
+                    <q-tooltip :delay="500">
+                      {{ watchedPercent }}
+                    </q-tooltip>
+                  </div>
+                </div>
+                <div class="ratings">
+                  <div v-if="info.imdb_rating">
+                    <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${info.imdb_rating}`" />
+                    <div>{{ info.imdb_rating }}</div>
+                  </div>
+                  <div v-if="info.trakt_rating && info.trakt_rating !== '0.0'">
+                    <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
+                    <div>{{ info.trakt_rating }}</div>
+                  </div>
+                  <div v-if="info.tmdb_rating && info.tmdb_rating !== '0.0'">
+                    <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
+                    <div>{{ info.tmdb_rating }}</div>
+                  </div>
+                  <div>
+                    <Rating :item="info" :rating="info.my_rating" />
+                  </div>
+                  <div v-if="info.trailer">
+                    <q-btn
+                      icon="slideshow"
+                      label="Trailer"
+                      color="secondary"
+                      flat
+                      @click="showTrailer = true"
+                    />
+                  </div>
+                </div>
+                <p class="q-mb-lg">{{ info.overview }}</p>
+              </div>
+            </div>
+            <div>
+              <!-- list show seasons -->
+              <div v-if="mType === 'show'">
+                <h2>
+                  {{ seasonLength }}
+                  {{ seasonLength > 1 ? 'Seasons' : 'Season' }}
+                </h2>
+                <div class="seasons">
+                  <div v-for="(season, index) in seasons" :key="season.id">
+                    <router-link
+                      class="relative-position"
+                      :to="{
+                        name: 'season-details',
+                        params: { show: $route.params.show, season: season.season_number },
+                      }"
+                    >
+                      <q-img
+                        width="150px"
+                        :ratio="1 / 1.5"
+                        :src="season.poster_path"
+                        :alt="season.name"
+                      >
+                        <div v-if="season.name.toLowerCase() !== 'specials'" class="season-watched">
+                          <q-knob
+                            readonly
+                            :max="1"
+                            :model-value="seasons[index]?.watched_progress"
+                            show-value
+                            size="30px"
+                            :thickness="0.2"
+                            color="secondary"
+                            track-color="grey-9"
+                            class="text-white"
+                          >
+                            <q-icon name="check_circle_outline" size="xs" color="positive" />
+                          </q-knob>
+                          <q-tooltip>
+                            {{ seasons[index]?.watched_percent }}
+                          </q-tooltip>
+                        </div>
+                        <div :class="['season-caption', 'absolute-bottom']">
+                          {{ season.name }}
+                        </div>
+                      </q-img>
+                    </router-link>
+                  </div>
+                </div>
+              </div>
+              <!-- List episodes in season -->
+              <div v-if="mType === 'season'">
+                <h1>{{ info.tmdb_data?.episodes.length }} Episodes</h1>
+                <div class="row">
+                  <ItemCard
+                    episode
+                    v-for="episode in info.tmdb_data?.episodes"
+                    :key="episode.name"
+                    :title="episodeTitle(episode)"
+                    :poster="episode.backdrop.backdrop_sm"
+                    :overview="episode.overview"
+                    :backdrop="episode.backdrop.backdrop_lg"
+                    @click="handleEpisodeClick(episode)"
+                  />
+                </div>
+              </div>
+              <Actors
+                v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
+                :actors="info.actors"
+                horizontal
+              />
+              <Reviews :reviews="info.reviews" :reviewCount="info.comment_count" />
             </div>
           </div>
         </div>
