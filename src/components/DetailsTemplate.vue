@@ -251,7 +251,7 @@
             width: '100%',
             height: '100%',
           }"
-          :video-id="info.trailer.split('v=')[1]"
+          :video-id="trailerUrl"
           @ready="trailerReady"
           @error="trailerError"
           vi
@@ -264,6 +264,7 @@
 <script>
 import { ref } from 'vue';
 import { YoutubeIframe } from '@vue-youtube/component';
+import axios from 'axios';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -318,6 +319,7 @@ export default {
       store,
       user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
       watchedProgress: ref(0),
+      trailerUrl: ref(null),
       showTrailer: ref(false),
       trailerVisible: ref(false),
       trailerHasError: ref(false),
@@ -328,6 +330,8 @@ export default {
   },
   created() {
     this.store.updateMenuVisible(false);
+
+    this.trailerUrl = this.info.trailer.split('v=')[1]; // eslint-disable-line
 
     if (this.mType === 'show') {
       this.seasons = [...this.info.tmdb_data.seasons];
@@ -390,17 +394,27 @@ export default {
       return season.completed / season.aired;
     },
     trailerReady(event) {
-      console.log(event.target);
+      console.log('PLAAAAAAAAAY');
       event.target.playVideo();
       setTimeout(() => {
         this.trailerVisible = true;
         event.target.hideVideoInfo();
       }, 500);
     },
-    trailerError(e) {
-      console.log(e.target);
-      this.trailerVisible = true;
-      this.trailerHasError = true;
+    async trailerError() {
+      console.log('ERRORRR');
+      if (this.trailerUrl === this.info.trailer.split('v=')[1]) {
+        console.log(this.info.type);
+        const newTrailer = await axios.get(
+          `https://youtube.googleapis.com/youtube/v3/search?q=${this.info.title}+trailer&type=video&key=AIzaSyBfkyk0lx2TEWByoXKtC1D7pYzVHZ2dGec`
+        );
+        if (newTrailer.status === 200) {
+          this.trailerUrl = newTrailer.data.items[0].id.videoId;
+        } else {
+          this.trailerVisible = true;
+          this.trailerHasError = true;
+        }
+      }
     },
     closeTrailer() {
       this.trailerVisible = false;
