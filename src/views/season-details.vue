@@ -6,7 +6,8 @@
     :title="info.title"
     :subTitle="info.year"
     :technicalDetails="arrDetails"
-    mType="movie"
+    mType="season"
+    @episodeClick="handleEpisodeClick"
   />
 </template>
 
@@ -16,19 +17,19 @@ import dayjs from 'dayjs';
 // store
 import { useStore } from '@/store/index';
 // api
-import { getMovieDetails } from '@/api/combinedCalls';
+import { getSeasonDetails } from '@/api/combinedCalls';
 // components
 import DetailsTemplate from '@/components/DetailsTemplate.vue';
 
 export default {
   components: { DetailsTemplate },
-  name: 'tv',
+  name: 'seasonDetails',
   setup() {
     const store = useStore();
     return {
-      info: ref({}),
       arrDetails: ref([]),
       loaded: ref(false),
+      // watchedProgress: ref(0),
       store,
     };
   },
@@ -38,38 +39,13 @@ export default {
     });
 
     this.store.updateLoading(false);
-    this.store.updateFilterType('movie');
+    this.store.updateFilterType('show');
 
     await this.getData();
 
     this.store.updateLoading(true);
   },
-  async updated() {
-    if (this.info && this.$route.params.movie) {
-      const params = this.$route.params.movie;
-      const movieId = this.info.ids.slug;
-      if (movieId !== params) {
-        await this.getData();
-      }
-    }
-  },
   computed: {
-    languageListString() {
-      const langs = this.info.tmdb_data.spoken_languages;
-      let strLang = '';
-      for (let i = 0; i < langs.length; i += 1) {
-        strLang += `${langs[i].english_name}${i !== langs.length - 1 ? ', ' : ''}`;
-      }
-      return strLang;
-    },
-    PCListString() {
-      const pcs = this.info.tmdb_data.production_companies;
-      let strPC = '';
-      for (let i = 0; i < pcs.length; i += 1) {
-        strPC += `${pcs[i].name}${i !== pcs.length - 1 ? ', ' : ''}`;
-      }
-      return strPC;
-    },
     detailsBackground() {
       return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
               linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
@@ -84,38 +60,30 @@ export default {
     async getData() {
       this.store.updateLoading(false);
 
-      this.info = await getMovieDetails(this.$route.params.movie);
+      this.info = await getSeasonDetails(this.$route.params.show, this.$route.params.season);
 
-      this.arrDetails = [
-        { label: 'runtime', value: `${this.info.runtime} minutes` },
-        { label: 'released', value: `${this.formattedDate(this.info.released)}` },
-        { label: 'in', value: this.info.tmdb_data.belongs_to_collection?.name },
-        { label: 'country', value: this.info.country?.toUpperCase() },
-        { label: 'languages', value: this.languageListString },
-        {
-          label: 'budget',
-          value: this.info.tmdb_data.budget
-            ? new Intl.NumberFormat('en-CA', {
-                style: 'currency',
-                maximumFractionDigits: 0,
-                currency: 'CAD',
-              }).format(this.info.tmdb_data.budget)
-            : null,
-        },
-        {
-          label: 'revenue',
-          value: this.info.tmdb_data.revenue
-            ? new Intl.NumberFormat('en-CA', {
-                style: 'currency',
-                maximumFractionDigits: 0,
-                currency: 'CAD',
-              }).format(this.info.tmdb_data.revenue)
-            : null,
-        },
-        { label: 'production companies', value: this.PCListString },
-      ];
+      // this.arrDetails = [
+      //   { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
+      //   { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },
+      //   { label: 'runtime', value: `${this.info.runtime} minutes` },
+      //   { label: 'genres', value: this.genreListString },
+      //   { label: 'first aired', value: this.formattedDate(this.info.first_aired) },
+      //   { label: 'country', value: this.info.country.toUpperCase() },
+      //   { label: 'network', value: this.info.network },
+      //   { label: 'languages', value: this.languageListString },
+      // ];
 
       this.store.updateLoading(true);
+    },
+    handleEpisodeClick(episode) {
+      this.$router.push({
+        name: 'episode-details',
+        params: {
+          show: this.info.show.ids.slug,
+          season: episode.season_number,
+          episode: episode.episode_number,
+        },
+      });
     },
     formattedDate(wDate) {
       return dayjs(wDate).format('MMM DD, YYYY');

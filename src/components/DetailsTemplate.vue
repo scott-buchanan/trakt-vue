@@ -11,25 +11,78 @@
         <div :class="['flex', 'no-wrap', 'q-pa-md']">
           <div v-if="screenGreaterThan.md" :class="['poster', 'q-pr-md']">
             <div class="relative-position">
-              <q-img :src="poster" alt="" />
+              <router-link
+                v-if="mType === 'episode'"
+                :to="{
+                  name: 'season-details',
+                  params: {
+                    show: info.show.ids.slug,
+                    season: info.season,
+                  },
+                }"
+              >
+                <q-img :src="poster" alt="" />
+              </router-link>
+              <q-img v-else :src="poster" alt="" />
             </div>
           </div>
           <div :class="['flex', 'full-width']">
             <div class="col-grow">
               <div class="flex no-wrap">
                 <div v-if="screenGreaterThan.md === false" class="q-pr-md q-pb-md">
-                  <q-img class="poster-small" width="12vw" :ratio="1 / 1.5" :src="poster" alt="" />
+                  <router-link
+                    v-if="mType === 'episode'"
+                    :to="{
+                      name: 'season-details',
+                      params: {
+                        show: info.show.ids.slug,
+                        season: info.season,
+                      },
+                    }"
+                  >
+                    <q-img
+                      class="poster-small"
+                      width="12vw"
+                      :ratio="1 / 1.5"
+                      :src="poster"
+                      alt=""
+                    />
+                  </router-link>
+                  <q-img
+                    v-else
+                    class="poster-small"
+                    width="12vw"
+                    :ratio="1 / 1.5"
+                    :src="poster"
+                    alt=""
+                  />
                 </div>
                 <div class="titles full-width">
-                  <q-img
-                    role="heading"
-                    aria-level="1"
-                    v-if="info.clear_logo && screenGreaterThan.xs"
-                    class="show-logo"
-                    :src="info.clear_logo"
-                    :alt="title"
-                  />
-                  <h1 v-else>{{ title }}</h1>
+                  <router-link
+                    v-if="mType === 'episode' || mType === 'season'"
+                    :to="{ name: 'show-details', params: { show: info.show.ids.slug } }"
+                  >
+                    <q-img
+                      role="heading"
+                      aria-level="1"
+                      v-if="info.clear_logo && screenGreaterThan.xs"
+                      class="show-logo"
+                      :src="info.clear_logo"
+                      :alt="title"
+                    />
+                    <h1 v-else>{{ title }}</h1>
+                  </router-link>
+                  <template v-else>
+                    <q-img
+                      role="heading"
+                      aria-level="1"
+                      v-if="info.clear_logo && screenGreaterThan.xs"
+                      class="show-logo"
+                      :src="info.clear_logo"
+                      :alt="title"
+                    />
+                    <h1 v-else>{{ title }}</h1>
+                  </template>
                   <div v-if="subTitle" :class="['sub-title', 'q-mt-sm']">
                     <div :class="['q-mb-md', 'q-mr-sm']">
                       {{ subTitle }}
@@ -113,14 +166,21 @@
               </div>
               <div>
                 <p class="q-mb-lg">{{ info.overview }}</p>
-                <div v-if="seasons">
+                <!-- list show seasons -->
+                <div v-if="mType === 'show'">
                   <h2>
                     {{ seasonLength }}
                     {{ seasonLength > 1 ? 'Seasons' : 'Season' }}
                   </h2>
                   <div class="seasons">
                     <div v-for="(season, index) in seasons" :key="season.id">
-                      <div class="relative-position">
+                      <router-link
+                        class="relative-position"
+                        :to="{
+                          name: 'season-details',
+                          params: { show: $route.params.show, season: season.season_number },
+                        }"
+                      >
                         <q-img
                           width="150px"
                           :ratio="1 / 1.5"
@@ -152,8 +212,24 @@
                             {{ season.name }}
                           </div>
                         </q-img>
-                      </div>
+                      </router-link>
                     </div>
+                  </div>
+                </div>
+                <!-- List episodes in season -->
+                <div v-if="mType === 'season'">
+                  <h1>{{ info.tmdb_data?.episodes.length }} Episodes</h1>
+                  <div class="row">
+                    <ItemCard
+                      episode
+                      v-for="episode in info.tmdb_data?.episodes"
+                      :key="episode.name"
+                      :title="episodeTitle(episode)"
+                      :poster="episode.backdrop.backdrop_sm"
+                      :overview="episode.overview"
+                      :backdrop="episode.backdrop.backdrop_lg"
+                      @click="handleEpisodeClick(episode)"
+                    />
                   </div>
                 </div>
                 <Actors
@@ -170,16 +246,31 @@
       <Actors v-if="screenGreaterThan.sm && info.actors?.length > 0" :actors="info.actors" />
     </div>
   </div>
-  <q-dialog v-model="showTrailer" :transition-duration="500">
+  <q-dialog v-model="showTrailer" :transition-duration="500" @hide="closeTrailer">
     <div class="trailer">
-      <YoutubeIframe
-        :style="{
-          width: '100%',
-          height: '100%',
-        }"
-        :video-id="info.trailer.split('v=')[1]"
-        @ready="trailerReady"
-      />
+      <div v-if="trailerHasError" :style="{ backgroundImage: `url(${trailerErrorBack})` }">
+        <div class="trailer-error-text">
+          Oops, trailer crashed. Search YouTube for a trailer
+          <a
+            :href="`https://www.youtube.com/results?search_query=${info.title} trailer`"
+            target="blank"
+          >
+            here</a
+          >.
+        </div>
+      </div>
+      <div v-else :style="{ opacity: isTrailerVisible ? 1 : 0 }">
+        <YoutubeIframe
+          :style="{
+            width: '100%',
+            height: '100%',
+          }"
+          :video-id="info.trailer.split('v=')[1]"
+          @ready="trailerReady"
+          @error="trailerError"
+          vi
+        />
+      </div>
     </div>
   </q-dialog>
 </template>
@@ -193,9 +284,12 @@ import { useStore } from '@/store/index';
 import Actors from '@/components/Actors.vue';
 import Rating from '@/components/Rating.vue';
 import Reviews from '@/components/Reviews.vue';
+import ItemCard from '@/components/ItemCard.vue';
+// assets
+import * as trailerErrorPic from '@/assets/trailer-error.jpg';
 
 export default {
-  components: { Actors, Reviews, Rating, YoutubeIframe },
+  components: { Actors, Reviews, Rating, YoutubeIframe, ItemCard },
   name: 'detailsTemplate',
   props: {
     info: {
@@ -221,6 +315,10 @@ export default {
         prop.every((obj) => 'label' in obj && 'value' in obj && Object.keys(obj).length === 2),
       default: () => [],
     },
+    mType: {
+      type: String,
+      required: true,
+    },
   },
   setup() {
     const store = useStore();
@@ -235,18 +333,22 @@ export default {
       user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
       watchedProgress: ref(0),
       showTrailer: ref(false),
+      trailerVisible: ref(false),
+      trailerHasError: ref(false),
+      trailerErrorBack: trailerErrorPic.default,
       seeMoreDetails: ref(false),
       seasons: ref(null),
     };
   },
   created() {
-    if (this.info.tmdb_data?.seasons) {
+    this.store.updateMenuVisible(false);
+
+    if (this.mType === 'show') {
       this.seasons = [...this.info.tmdb_data.seasons];
       if (this.seasons[0].name.toLowerCase() === 'specials') {
         const specials = this.seasons.shift();
         this.seasons.push(specials);
       }
-      console.log(this.seasons);
       this.info.watched_progress.seasons.forEach((season, index) => {
         const delay = season.number > 1 ? season.number * 200 + 500 : 500;
         this.seasons[index].watched_progress = 0;
@@ -285,37 +387,38 @@ export default {
     screenGreaterThan() {
       return this.$q.screen.gt;
     },
+    isTrailerVisible() {
+      return this.trailerVisible;
+    },
   },
   methods: {
+    episodeTitle(episode) {
+      return `${episode.season_number}x${episode.episode_number.toString().padStart(2, 0)} ${
+        episode.name
+      }`;
+    },
+    handleEpisodeClick(item) {
+      this.$emit('episodeClick', item);
+    },
     seasonWatchedProgress(season) {
       return season.completed / season.aired;
-      // const delay = season.number + 100;
-      // // const x = () =>
-      // //   new Promise((resolve) => {
-      // //     setTimeout(() => resolve(season.completed / season.aired), 500 + delay);
-      // //   });
-      // // const returnValue = await x();
-      // // console.log(returnValue);
-      // // return returnValue;
-      // // return season.completed / season.aired;
-
-      // const x = () => {
-      //   const promise = new Promise((resolve) => {
-      //     setTimeout(() => {
-      //       resolve(season.completed / season.aired);
-      //     }, 500 + delay);
-      //   });
-      //   return promise;
-      // };
-
-      // const y = async () => {
-      //   const result = await x();
-      //   console.log(result);
-      // };
-      // return y;
     },
     trailerReady(event) {
+      console.log(event.target);
       event.target.playVideo();
+      setTimeout(() => {
+        this.trailerVisible = true;
+        event.target.hideVideoInfo();
+      }, 500);
+    },
+    trailerError(e) {
+      console.log(e.target);
+      this.trailerVisible = true;
+      this.trailerHasError = true;
+    },
+    closeTrailer() {
+      this.trailerVisible = false;
+      this.trailerHasError = false;
     },
     truncateDetails(details) {
       return this.seeMoreDetails ? details : details.split(',', 2).toString();
@@ -424,11 +527,26 @@ button {
   padding: 0 !important;
 }
 .trailer {
+  background-color: black;
   width: 100vw;
   max-width: 100vw;
-  height: 60vw;
-  max-height: 60vh;
-  background-color: black;
+  height: 70vw;
+  max-height: 70vh;
+  position: relative;
+  & > div {
+    height: 70vw;
+    max-height: 70vh;
+    transition: opacity 5s;
+  }
+  & .trailer-error-text {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    text-align: center;
+    padding: 25px;
+    background: rgba(0, 0, 0, 0.8);
+    font-size: 2em;
+  }
 }
 .tags {
   margin-right: 5px;
@@ -447,6 +565,9 @@ button {
   & .season-caption {
     font-size: 0.85em;
     padding: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   & .season-watched {
     padding: 5px;

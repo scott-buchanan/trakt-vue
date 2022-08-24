@@ -31,6 +31,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "TV" */ '../views/episode-details.vue'),
   },
   {
+    path: '/tv/:show/season/:season',
+    name: 'season-details',
+    component: () => import(/* webpackChunkName: "TV" */ '../views/season-details.vue'),
+  },
+  {
     path: '/tv/:show',
     name: 'show-details',
     component: () => import(/* webpackChunkName: "TV" */ '../views/show-details.vue'),

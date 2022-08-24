@@ -214,6 +214,9 @@ button {
   color: white;
   padding: 0;
 }
+.q-dialog__backdrop {
+  background: rgba(0, 0, 0, 0.9) !important;
+}
 .layout {
   background-size: cover;
   background-repeat: no-repeat;

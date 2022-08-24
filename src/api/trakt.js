@@ -336,6 +336,8 @@ export async function getComments(item, reply = false) {
     url = `https://api.trakt.tv/comments/${item}/replies`;
   } else if (item.type === 'episode') {
     url = `https://api.trakt.tv/shows/${item.slug}/seasons/${item.season}/episodes/${item.number}/comments/likes`;
+  } else if (item.type === 'season') {
+    url = `https://api.trakt.tv/shows/${item.ids.slug}/seasons/${item.season}/comments/likes`;
   } else if (item.type === 'show') {
     url = `https://api.trakt.tv/shows/${item.ids.trakt}/comments/likes`;
   } else {
@@ -381,19 +383,6 @@ export async function getComments(item, reply = false) {
     })
   );
 }
-
-// export async function getCommentReplies(commentId) {
-//   const response = await axios({
-//     method: 'GET',
-//     url: `https://api.trakt.tv/comments/${commentId}/replies`,
-//     headers: {
-//       'Content-Type': 'application/json',
-//       'trakt-api-version': '2',
-//       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
-//     },
-//   });
-//   return response.data;
-// }
 
 export async function getShowWatchedProgress(showId) {
   const response = await axios({

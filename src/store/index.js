@@ -12,6 +12,7 @@ export const useStore = defineStore('main', {
     loaded: false,
     tokens: null,
     myInfo: null,
+    menuVisible: false,
   }),
   actions: {
     updatePage(page) {
@@ -34,6 +35,9 @@ export const useStore = defineStore('main', {
     },
     updateMyInfo(myInfo) {
       this.myInfo = { ...myInfo };
+    },
+    updateMenuVisible(value) {
+      this.menuVisible = value;
     },
   },
 });

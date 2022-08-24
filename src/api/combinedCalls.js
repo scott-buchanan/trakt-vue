@@ -5,6 +5,7 @@ import {
   getMovieBackdrop,
   tmdbEpisodeDetails,
   tmdbShowDetails,
+  tmdbShowSeasonDetails,
   tmdbMovieDetails,
   getSeasonPoster,
   getShowPoster,
@@ -133,6 +134,33 @@ export async function getEpisodeDetails(slug, season, episode) {
   res.my_rating = ratings.find((rating) => rating.episode.ids.trakt === summary.ids.trakt)?.rating;
 
   return { ...{ show }, ...summary, ...res };
+}
+
+/**
+ * Gets the info needed to display episode info in the CardContainer component.
+ * @function
+ * @param {Object} show - trakt show object.
+ * @returns {Object} Object containing images, ratings needed.
+ */
+export async function getSeasonDetails(slug, season) {
+  const res = {};
+
+  const showInfo = await getShowSummary(slug);
+  const summary = { show: { ids: showInfo.ids } };
+  summary.type = 'season';
+  summary.season = season;
+  summary.title = showInfo.title;
+
+  await Promise.all([
+    getShowBackdrop(summary),
+    getShowClearLogo(summary.show.ids.tvdb),
+    tmdbShowSeasonDetails(summary.show, season),
+    getComments(summary.show),
+  ]).then((results) => {
+    [res.backdrop, res.clear_logo, res.tmdb_data, res.reviews] = results;
+    res.poster = `https://image.tmdb.org/t/p/w780${res.tmdb_data.poster_path}`;
+  });
+  return { ...summary, ...res };
 }
 
 /**

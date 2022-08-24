@@ -6,6 +6,7 @@
     :title="info.title"
     :subTitle="info.year"
     :technicalDetails="arrDetails"
+    mType="show"
   />
 </template>
 
@@ -85,7 +86,7 @@ export default {
       this.store.updateLoading(false);
 
       this.info = await getShowDetails(this.$route.params.show);
-      console.log(this.info);
+
       this.arrDetails = [
         { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
         { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },

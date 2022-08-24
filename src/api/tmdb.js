@@ -168,13 +168,25 @@ export async function tmdbShowDetails(show) {
   }
 }
 
-export async function tmdbShowSeason(show, season) {
+export async function tmdbShowSeasonDetails(show, season) {
   try {
     const response = await axios({
       method: 'GET',
       url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/season/${season}?api_key=89c6bd3331244e97eed61741fc798ab5`,
     });
-    return response.data;
+
+    const episodes = [];
+    await Promise.all(
+      response.data.episodes.map(async (episode) => {
+        const ep = { season: episode.season_number, number: episode.episode_number };
+        const backdrop = await getEpisodeBackdrop(show, ep);
+        episodes.push({ ...episode, ...{ backdrop } });
+      })
+    );
+
+    episodes.sort((a, b) => a.episode_number - b.episode_number);
+
+    return { ...response.data, ...{ episodes } };
   } catch {
     return null;
   }

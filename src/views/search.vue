@@ -136,6 +136,9 @@ export default {
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
 
+h2 {
+  font-size: 1rem !important;
+}
 .search-container {
   height: 100%;
   padding: 0 $space-sm $space-sm 0;

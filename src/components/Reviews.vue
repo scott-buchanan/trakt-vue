@@ -1,6 +1,6 @@
 <template>
-  <q-timeline v-if="reviews?.length > 0" color="secondary" class="q-mb-lg" dark>
-    <div v-if="reply === false" class="flex items-start justify-between">
+  <q-timeline v-if="reviews?.length > 0" color="secondary" dark>
+    <div v-if="reply === false" class="flex items-start justify-between no-wrap">
       <q-timeline-entry heading class="review-heading" tag="h2">
         User Reviews
         <sup>
@@ -12,35 +12,39 @@
       </div>
     </div>
     <q-timeline-entry v-for="review in truncateReviews" :key="review.id">
-      <template #title>
-        <q-item class="review-rating q-pa-none">
-          <q-item-section>
-            <q-item-label class="flex items-center">
-              <div v-show="review.user_rating || review.user_stats.rating" class="q-mr-sm">
-                <q-icon name="star" color="yellow" size="1.5em" class="star_rate" />
+      <template #subtitle>
+        <div class="flex items-center">
+          <div :class="['flex', 'q-mb-sm', { 'full-width wrap ': !screenGreaterThan.sm }]">
+            <q-avatar class="q-mr-sm">
+              <q-img :src="review.avatar" alt="" referrerpolicy="no-referrer" />
+            </q-avatar>
+            <div class="username">
+              {{ review.user.name ? review.user.name : review.user.username }}<br />
+              <small>{{ formattedDate(review.created_at) }}</small>
+            </div>
+          </div>
+          <q-space />
+          <div :class="['column', screenGreaterThan.sm ? 'items-end' : 'items-start']">
+            <div
+              v-show="review.user_rating || review.user_stats.rating"
+              :class="[
+                'review-rating',
+                screenGreaterThan.sm ? 'justify-end' : 'justify-start',
+                'q-mb-sm',
+              ]"
+            >
+              <div>
+                <q-icon name="star" color="yellow" size="1.5em" class="star" />
+              </div>
+              <div>
                 <span>
                   {{ review.userating ? review.user_rating : review.user_stats.rating }}
                 </span>
                 <small>&nbsp;/10</small>
               </div>
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-      </template>
-      <template #subtitle>
-        <q-item class="q-pa-none">
-          <q-item-section avatar>
-            <q-avatar>
-              <q-img :src="review.avatar" alt="" referrerpolicy="no-referrer" />
-            </q-avatar>
-          </q-item-section>
-          <q-item-section>
-            {{ review.user.name ? review.user.name : review.user.username }}<br />
-            <small>{{ formattedDate(review.created_at) }}</small>
-          </q-item-section>
-          <q-item-section>
-            <div class="flex justify-end items-center">
-              <div>
+            </div>
+            <div class="likes-replies">
+              <div class="q-mr-sm">
                 <q-btn
                   :icon="likedReview(review) ? 'thumb_up_alt' : 'thumb_up_off_alt'"
                   color="secondary"
@@ -53,36 +57,34 @@
                 />
                 {{ review.likes === 1 ? `${review.likes} like` : `${review.likes} likes` }}
               </div>
-              <div class="q-ml-sm">
-                <div v-if="review.replies > 0">
-                  <q-btn
-                    class="review-likes-comments"
-                    flat
-                    dense
-                    no-caps
-                    :ripple="false"
-                    @click="getReplies(review)"
-                  >
-                    <q-icon class="q-pr-xs" name="comment" size="24px" color="secondary" />
-                    {{
-                      review.replies === 1 ? `${review.replies} reply` : `${review.replies} replies`
-                    }}
-                    <q-icon
-                      :class="reviewReplies[review.id]?.show ? 'expand-less' : 'expand-more'"
-                      name="expand_less"
-                      size="xs"
-                      color="white"
-                    />
-                  </q-btn>
-                </div>
-                <div v-else>
+              <div v-if="review.replies > 0">
+                <q-btn
+                  class="review-likes-comments"
+                  flat
+                  dense
+                  no-caps
+                  :ripple="false"
+                  @click="getReplies(review)"
+                >
                   <q-icon class="q-pr-xs" name="comment" size="24px" color="secondary" />
-                  {{ `${review.replies} replies` }}
-                </div>
+                  {{
+                    review.replies === 1 ? `${review.replies} reply` : `${review.replies} replies`
+                  }}
+                  <q-icon
+                    :class="reviewReplies[review.id]?.show ? 'expand-less' : 'expand-more'"
+                    name="expand_less"
+                    size="xs"
+                    color="white"
+                  />
+                </q-btn>
+              </div>
+              <div v-else>
+                <q-icon class="q-pr-xs" name="comment" size="24px" color="secondary" />
+                {{ `${review.replies} replies` }}
               </div>
             </div>
-          </q-item-section>
-        </q-item>
+          </div>
+        </div>
       </template>
       <div v-if="formatReviews(review.comment).length > 300" class="review-bubble">
         {{ truncateReviewCard(formatReviews(review.comment), 300) }}
@@ -181,6 +183,9 @@ export default {
         };
       },
     },
+    screenGreaterThan() {
+      return this.$q.screen.gt;
+    },
   },
   methods: {
     async getReplies(review) {
@@ -251,16 +256,34 @@ sup {
   opacity: 1;
   color: $accent;
 }
+:deep(.q-timeline__content) {
+  margin-top: -10px;
+}
 .review-rating {
-  min-height: auto;
-  & div:not(:first-child),
-  button {
-    font-size: 12px;
+  display: flex;
+  align-items: center;
+  width: 100px;
+  & > div {
+    font-size: 1.8em;
+    color: white;
+    & > small {
+      margin-left: -5px;
+    }
+    & .star {
+      opacity: 1;
+      margin-right: 2px;
+    }
   }
-  & .star {
-    opacity: 1;
-    margin-right: 3px;
-  }
+}
+.username {
+  max-width: 180px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.likes-replies {
+  display: flex;
+  align-items: center;
 }
 .review-likes-comments {
   & .expand-more {
@@ -284,6 +307,15 @@ sup {
     margin-bottom: 0;
   }
 }
+// .review-title {
+//   & > .username {
+//     width: 100px;
+//     max-width: 100px;
+//     overflow: hidden;
+//     white-space: nowrap;
+//     text-overflow: ellipsis;
+//   }
+// }
 .review-bubble {
   @include background-style;
   padding: $space-md;
@@ -295,13 +327,10 @@ sup {
     width: 0;
     height: 0;
     bottom: 100%;
-    left: 1.5em; // offset should move with padding of parent
+    left: 13px; // offset should move with padding of parent
     border: 0.75rem solid transparent;
     border-top: none;
-
-    // looks
     border-bottom-color: rgba(0, 0, 0, $opacity-back);
-    filter: drop-shadow(0 -0.0625rem 0.0625rem rgba(0, 0, 0, 0.1));
   }
 }
 </style>

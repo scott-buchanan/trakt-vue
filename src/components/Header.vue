@@ -13,7 +13,7 @@
         class="col-6"
         clearable
         @update:model-value="doSearch"
-        @focus="handleSearchFocus"
+        @focus="searchHasFocus = true"
         @blur="handleSearchBlur"
         @clear="autocompleteApiResults = []"
         @keydown="goSearch"
@@ -30,6 +30,8 @@
         :offset="[0, 5]"
         max-height="90vh"
         fit
+        persistent
+        no-refocus
         class="autocomplete-menu"
         transition-show="jump-up"
         transition-hide="jump-down"
@@ -78,6 +80,8 @@
           </q-item>
         </q-list>
       </q-menu>
+      {{ store.menuVisible }}
+      {{ autocompleteApiResults.length }}
       <q-select
         v-model="filterModel"
         :options="filterOptions[store.filterType]"
@@ -131,25 +135,23 @@ export default {
       filterOptions,
       autocompleteApiResults: ref([]),
       selectModel: ref(null),
-      goneToDetails: ref(false),
       searchHasFocus: ref(false),
       searchTypedValue: ref(null),
+      menuVisible: ref(store.menuVisible),
       autocompleteTimer: ref(null),
     };
   },
+  created() {
+    this.store.$subscribe((mutated, state) => {
+      this.menuVisible = state.menuVisible;
+    });
+  },
   computed: {
     showMenu() {
-      return (
-        this.searchHasFocus === true &&
-        this.goneToDetails === false &&
-        this.autocompleteApiResults.length > 0
-      );
+      return this.searchHasFocus && this.menuVisible && this.autocompleteApiResults.length > 0;
     },
   },
   methods: {
-    handleSearchFocus() {
-      this.searchHasFocus = true;
-    },
     handleSearchBlur() {
       if (!document.activeElement.className.includes('autocomplete-item')) {
         this.searchHasFocus = false;
@@ -161,6 +163,7 @@ export default {
       this.$router.push({ path: this.store.filterType === 'movie' ? '/movie' : '/tv' });
     },
     async doSearch(value) {
+      this.store.updateMenuVisible(true);
       this.searchTypedValue = value;
       if (value?.length > 1) {
         if (this.autocompleteTimer) {
@@ -209,9 +212,10 @@ export default {
     goSearch(event) {
       if (this.searchTypedValue?.length > 0) {
         if (event.key?.toLowerCase() === 'enter' || event.type === 'click') {
+          const searchTerm = this.searchTypedValue;
           this.searchTypedValue = null;
           this.autocompleteApiResults = [];
-          this.$router.push({ name: 'search', query: { term: this.searchTypedValue } });
+          this.$router.push({ name: 'search', query: { term: searchTerm } });
         }
       }
     },
