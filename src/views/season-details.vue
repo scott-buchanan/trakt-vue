@@ -61,7 +61,7 @@ export default {
       this.store.updateLoading(false);
 
       this.info = await getSeasonDetails(this.$route.params.show, this.$route.params.season);
-
+      console.log(this.info);
       // this.arrDetails = [
       //   { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
       //   { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },

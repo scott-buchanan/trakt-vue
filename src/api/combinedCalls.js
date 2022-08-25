@@ -152,7 +152,7 @@ export async function getSeasonDetails(slug, season) {
   summary.title = showInfo.title;
 
   await Promise.all([
-    getShowBackdrop(summary),
+    getShowBackdrop(summary.show),
     getShowClearLogo(summary.show.ids.tvdb),
     tmdbShowSeasonDetails(summary.show, season),
     getComments(summary.show),

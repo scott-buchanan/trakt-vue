@@ -24,7 +24,7 @@
             </router-link>
             <q-img v-else :src="poster" alt="" />
           </div>
-          <div>
+          <div class="full-width">
             <div :class="['flex', { 'no-wrap': screenGreaterThan.xs }]">
               <div v-if="screenGreaterThan.md === false" class="float-left q-pr-md q-pb-md">
                 <router-link
@@ -127,13 +127,19 @@
                   </div>
                 </div>
                 <div class="ratings">
-                  <div v-if="info.imdb_rating">
-                    <img src="@/assets/imdb_tall.png" :alt="`IMDb rating ${info.imdb_rating}`" />
-                    <div>{{ info.imdb_rating }}</div>
+                  <div>
+                    <a :href="getIMDbLink()" target="blank">
+                      <img src="@/assets/imdb_tall.png" alt="IMDb" />
+                    </a>
+                    <div v-if="info.imdb_rating">{{ info.imdb_rating }}</div>
                   </div>
-                  <div v-if="info.trakt_rating && info.trakt_rating !== '0.0'">
-                    <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
-                    <div>{{ info.trakt_rating }}</div>
+                  <div>
+                    <a :href="getTraktLink()" target="blank">
+                      <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
+                    </a>
+                    <div v-if="info.trakt_rating && info.trakt_rating !== '0.0'">
+                      {{ info.trakt_rating }}
+                    </div>
                   </div>
                   <div v-if="info.tmdb_rating && info.tmdb_rating !== '0.0'">
                     <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
@@ -254,7 +260,6 @@
           :video-id="trailerUrl"
           @ready="trailerReady"
           @error="trailerError"
-          vi
         />
       </div>
     </div>
@@ -329,9 +334,10 @@ export default {
     };
   },
   created() {
+    console.log(process.env.YOUTUBE_API_KEY);
     this.store.updateMenuVisible(false);
 
-    this.trailerUrl = this.info.trailer.split('v=')[1]; // eslint-disable-line
+    this.trailerUrl = this.info.trailer?.split('v=')[1]; // eslint-disable-line
 
     if (this.mType === 'show') {
       this.seasons = [...this.info.tmdb_data.seasons];
@@ -382,6 +388,9 @@ export default {
     },
   },
   methods: {
+    truncateDetails(details) {
+      return this.seeMoreDetails ? details : details.split(',', 2).toString();
+    },
     episodeTitle(episode) {
       return `${episode.season_number}x${episode.episode_number.toString().padStart(2, 0)} ${
         episode.name
@@ -390,23 +399,31 @@ export default {
     handleEpisodeClick(item) {
       this.$emit('episodeClick', item);
     },
-    seasonWatchedProgress(season) {
-      return season.completed / season.aired;
+    getIMDbLink() {
+      if (this.info.type === 'season') {
+        return `https://www.imdb.com/title/${this.info.show.ids.imdb}/episodes?season=${this.info.season}`;
+      }
+      return `https://www.imdb.com/title/${this.info.ids.imdb}`;
+    },
+    getTraktLink() {
+      if (this.info.type === 'season') {
+        return `https://trakt.tv/shows/${this.info.show.ids.slug}/seasons/${this.info.season}`;
+      }
+      if (this.info.type === 'episode') {
+        return `https://trakt.tv/shows/${this.info.show.ids.slug}/seasons/${this.info.season}/episodes/${this.info.number}`;
+      }
+      return `https://trakt.tv/${this.info.type}s/${this.info.ids.slug}`;
     },
     trailerReady(event) {
-      console.log('PLAAAAAAAAAY');
       event.target.playVideo();
       setTimeout(() => {
         this.trailerVisible = true;
-        event.target.hideVideoInfo();
       }, 500);
     },
     async trailerError() {
-      console.log('ERRORRR');
       if (this.trailerUrl === this.info.trailer.split('v=')[1]) {
-        console.log(this.info.type);
         const newTrailer = await axios.get(
-          `https://youtube.googleapis.com/youtube/v3/search?q=${this.info.title}+trailer&type=video&key=AIzaSyBfkyk0lx2TEWByoXKtC1D7pYzVHZ2dGec`
+          `https://youtube.googleapis.com/youtube/v3/search?q=${this.info.title}+trailer&type=video&key=${process.env.YOUTUBE_API_KEY}`
         );
         if (newTrailer.status === 200) {
           this.trailerUrl = newTrailer.data.items[0].id.videoId;
@@ -419,9 +436,6 @@ export default {
     closeTrailer() {
       this.trailerVisible = false;
       this.trailerHasError = false;
-    },
-    truncateDetails(details) {
-      return this.seeMoreDetails ? details : details.split(',', 2).toString();
     },
   },
 };
@@ -494,7 +508,7 @@ button {
     align-items: center;
     margin-bottom: $space-md;
   }
-  & > div > img {
+  & a > img {
     width: 35px;
   }
   & > div > div:nth-child(2) {

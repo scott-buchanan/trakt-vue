@@ -1,15 +1,12 @@
 <template>
-  <button
-    :class="['text-left', screenGreaterThan.md && !episode ? 'col-6' : 'col-12']"
-    @click="handleClick"
-  >
+  <button :class="['text-left', screenGreaterThan.lg ? 'col-6' : 'col-12']" @click="handleClick">
     <div
       class="card"
       :style="{
         backgroundImage: `${backgroundGradient()} url(https://image.tmdb.org/t/p/w1280/${backdrop})`,
       }"
     >
-      <div>
+      <div v-if="screenGreaterThan.sm">
         <q-img
           v-if="poster"
           height="100%"
@@ -87,16 +84,9 @@ button {
   border: none;
   margin: 0;
   padding: 0 0 $space-sm 0;
-  &:last-child {
-    padding-bottom: 0;
-  }
-  &.pad {
-    padding: 0 $space-sm $space-sm 0;
-    &:nth-child(2n) {
-      padding-right: 0;
-    }
-    &:nth-last-child(-n + 2) {
-      padding-bottom: 0;
+  @media only screen and (min-width: $breakpoint-lg) {
+    &:nth-child(odd) {
+      padding-right: $space-sm;
     }
   }
 }
