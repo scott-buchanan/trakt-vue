@@ -46,7 +46,7 @@ export async function getTraktSettings(token) {
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
   });
-  localStorage.setItem('trakt-vue-user', JSON.stringify(response.data.user));
+  localStorage.setItem('trakt-vue-user', JSON.stringify(response.data));
   return response.data;
 }
 // -------- </SETTINGS> -----------
@@ -56,7 +56,7 @@ export async function getTraktSettings(token) {
  * @property {string} rType can be shows or movies
  */
 export async function getRecommendationsFromMe(rType, page) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const limit = JSON.parse(localStorage.getItem('item-limit'));
   const response = await axios({
     method: 'GET',
@@ -97,7 +97,7 @@ export async function getTrending(mType, page) {
  * @param {string} mType - 'movies' or 'episodes'
  */
 export async function getWatchedHistory(mType, page = 1) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const limit = JSON.parse(localStorage.getItem('item-limit'));
   const response = await axios({
     method: 'GET',
@@ -116,7 +116,7 @@ export async function getWatchedHistory(mType, page = 1) {
 }
 
 export async function getTvCollection() {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   // no pagination available for this
   const response = await axios({
     method: 'GET',
@@ -252,7 +252,7 @@ export async function getShowActors(showId) {
 // }
 
 export async function getMyEpisodeRatings(page = null) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
     ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=100&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/episodes`;
@@ -273,7 +273,7 @@ export async function getMyEpisodeRatings(page = null) {
 }
 
 export async function getMyShowRatings(page = null) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
     ? `https://api.trakt.tv/users/${uName}/ratings/shows?limit=100&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/shows`;
@@ -294,7 +294,7 @@ export async function getMyShowRatings(page = null) {
 }
 
 export async function getMyMovieRatings(page = null) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
     ? `https://api.trakt.tv/users/${uName}/ratings/movies?limit=100&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/movies`;
@@ -315,7 +315,7 @@ export async function getMyMovieRatings(page = null) {
 }
 
 export async function getMyLikes(page = null) {
-  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.username;
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = `https://api.trakt.tv/users/${uName}/likes/type?limit=100&page=${page}`;
   const response = await axios({
     method: 'GET',

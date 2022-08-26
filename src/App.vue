@@ -18,11 +18,15 @@
     >
       <div>
         <q-img
-          src="@/assets/drawer-image-1.jpg"
+          :src="myInfo?.account.cover_image ? myInfo?.account.cover_image : defaultBack"
           :class="{ 'avatar-mini': isSmall }"
           :style="`height: ${$q.screen.xs ? '50px' : '150px'}`"
+          referrerpolicy="no-referrer"
         >
-          <div class="absolute-bottom bg-transparent">
+          <div v-if="myInfo" class="absolute-top-right bg-transparent z-top">
+            <q-btn icon="logout" dense rounded flat @click="logout" />
+          </div>
+          <div v-if="myInfo" class="absolute-bottom bg-transparent">
             <q-avatar :size="$q.screen.xs ? '30px' : '56px'" class="q-mb-sm">
               <q-img
                 :src="myInfo?.user.images.avatar.full"
@@ -38,6 +42,14 @@
                 </a>
               </div>
             </div>
+          </div>
+          <div v-else class="login">
+            <q-btn color="white" style="background: rgba(0, 0, 0, 0.8)" flat @click="goToLogin">
+              <q-avatar size="20px">
+                <img :src="traktIcon" alt="" />
+              </q-avatar>
+              <div class="q-pl-sm">Login</div>
+            </q-btn>
           </div>
         </q-img>
 
@@ -131,6 +143,9 @@ import LoaderFingers from '@/components/LoaderFingers.vue';
 import HeaderBar from '@/components/Header.vue';
 // api
 import { getAppBackgroundImg } from '@/api/tmdb';
+// assets
+import * as defaultImage from '@/assets/drawer-image-1.jpg';
+import * as traktIcon from '@/assets/trakt-icon-red.svg';
 
 export default {
   name: 'TraktVueApp',
@@ -145,6 +160,8 @@ export default {
       store,
       myInfo: ref(store.myInfo),
       loaded: ref(false),
+      defaultBack: defaultImage.default,
+      traktIcon: traktIcon.default,
       backgroundImg: ref(''),
     };
   },
@@ -169,6 +186,17 @@ export default {
       this.store.updateLoading(false);
       this.$router.push({ name: pathName });
     },
+    goToLogin() {
+      window.location =
+        'https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080';
+    },
+    logout() {
+      // localStorage.removeItem('trakt-vue-user');
+      // localStorage.removeItem('trakt-vue-token');
+      // localStorage.removeItem('trakt-vue-movie-ratings');
+      localStorage.clear();
+      this.$router.go();
+    },
   },
 };
 </script>
@@ -189,7 +217,7 @@ a,
 a:visited,
 a:active {
   text-decoration: none;
-  color: $accent !important;
+  // color: $accent !important;
 }
 a:hover {
   text-decoration: underline;
@@ -231,6 +259,16 @@ button {
 .app-drawer > div {
   display: flex;
   flex-direction: column;
+  & .login {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    & > button {
+      top: calc(50% - 15px);
+    }
+  }
   & .avatar-mini {
     text-align: center;
     & > div > div {

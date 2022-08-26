@@ -14,7 +14,7 @@
       <div>{{ myRating === 10 ? myRating : myRating.toFixed(1) }}</div>
     </div>
   </div>
-  <q-btn v-else id="btnRate" flat color="secondary" label="Rate" @click="openRatingPopup" />
+  <q-btn v-else id="btnRate" outline color="secondary" label="Rate" @click="openRatingPopup" />
   <q-menu
     v-model="ratingPopOpen"
     :target="myRating ? '#avatar' : '#btnRate'"
@@ -64,7 +64,7 @@ export default {
   setup() {
     return {
       ratingPopOpen: ref(false),
-      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user')).user),
       myRating: ref(0),
       ratingTimeoutId: ref(null),
     };

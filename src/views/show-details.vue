@@ -86,13 +86,13 @@ export default {
       this.store.updateLoading(false);
 
       this.info = await getShowDetails(this.$route.params.show);
-
+      console.log(this.info);
       this.arrDetails = [
         { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
         { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },
+        { label: 'premiered', value: this.formattedDate(this.info.first_aired) },
         { label: 'runtime', value: `${this.info.runtime} minutes` },
         { label: 'genres', value: this.genreListString },
-        { label: 'first aired', value: this.formattedDate(this.info.first_aired) },
         { label: 'country', value: this.info.country.toUpperCase() },
         { label: 'network', value: this.info.network },
         { label: 'languages', value: this.languageListString },

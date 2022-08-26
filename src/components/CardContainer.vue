@@ -122,7 +122,7 @@ export default {
   setup() {
     const store = useStore();
     return {
-      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))?.user),
       store,
     };
   },

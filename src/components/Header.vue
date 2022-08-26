@@ -80,8 +80,6 @@
           </q-item>
         </q-list>
       </q-menu>
-      {{ store.menuVisible }}
-      {{ autocompleteApiResults.length }}
       <q-select
         v-model="filterModel"
         :options="filterOptions[store.filterType]"
@@ -117,22 +115,9 @@ export default {
   },
   setup() {
     const store = useStore();
-    const filterOptions = {
-      movie: [
-        { label: 'Watch History', value: 'history' },
-        { label: 'My Recommended', value: 'recommended' },
-        { label: 'Trending', value: 'trending' },
-      ],
-      show: [
-        { label: 'Watch History', value: 'history' },
-        { label: 'My Recommended', value: 'recommended' },
-        { label: 'Trending', value: 'trending' },
-      ],
-    };
     return {
       store,
       filterModel: ref(store.filter.label),
-      filterOptions,
       autocompleteApiResults: ref([]),
       selectModel: ref(null),
       searchHasFocus: ref(false),
@@ -149,6 +134,29 @@ export default {
   computed: {
     showMenu() {
       return this.searchHasFocus && this.menuVisible && this.autocompleteApiResults.length > 0;
+    },
+    filterOptions() {
+      const options = {
+        movie: [
+          { label: 'Watch History', value: 'history' },
+          { label: 'My Recommended', value: 'recommended' },
+          { label: 'Trending', value: 'trending' },
+        ],
+        show: [
+          { label: 'Watch History', value: 'history' },
+          { label: 'My Recommended', value: 'recommended' },
+          { label: 'Trending', value: 'trending' },
+        ],
+      };
+
+      if (!localStorage.getItem('trakt-vue-user')) {
+        Object.entries(options).forEach((mType) => {
+          options[mType[0]] = mType[1].filter(
+            (item) => item.value !== 'history' && item.value !== 'recommended'
+          );
+        });
+      }
+      return options;
     },
   },
   methods: {

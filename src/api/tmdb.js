@@ -158,8 +158,10 @@ export async function tmdbShowDetails(show) {
     const { data } = response;
     const seasons = [];
     data.seasons.forEach((season) => {
-      const path = `https://image.tmdb.org/t/p/w200${season.poster_path}`;
-      seasons.push({ ...season, ...{ poster_path: path } });
+      if (season.episode_count > 0) {
+        const path = `https://image.tmdb.org/t/p/w200${season.poster_path}`;
+        seasons.push({ ...season, ...{ poster_path: path } });
+      }
     });
     data.seasons = seasons;
     return response.data;
@@ -238,7 +240,11 @@ export async function tmdbActors(item) {
       data.map(async (actor) => {
         const actorIds = await getIdLookupActorTmdb(actor.id);
         const path = `https://image.tmdb.org/t/p/w200${actor.profile_path}`;
-        actors.push({ ...actor, ...{ profile_path: path }, ids: actorIds.person.ids });
+        actors.push({
+          ...actor,
+          ...{ profile_path: actor.profile_path ? path : null },
+          ids: actorIds.person.ids,
+        });
       })
     );
     return actors.sort((a, b) => a.order - b.order);

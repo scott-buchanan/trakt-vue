@@ -10,7 +10,7 @@
         <q-img
           v-if="poster"
           height="100%"
-          width="355px"
+          width="250px"
           :src="`https://image.tmdb.org/t/p/w500/${poster}`"
           :alt="title"
         />

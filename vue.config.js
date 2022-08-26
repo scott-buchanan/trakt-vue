@@ -10,4 +10,5 @@ module.exports = defineConfig({
       extras: ['material-icons-outlined'],
     },
   },
+  // publicPath: '',
 });

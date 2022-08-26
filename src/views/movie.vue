@@ -102,10 +102,9 @@ export default {
 
       if (this.store.filter.value === 'history') {
         items.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at));
+      } else if (this.filter.value === 'trending') {
+        items.sort((a, b) => b.watchers - a.watchers);
       }
-      // } else if (this.filter.value === 'trending') {
-      //   items.sort((a, b) => b.watchers - a.watchers);
-      // }
 
       this.data.items = [...items];
 
@@ -117,7 +116,7 @@ export default {
         this.data.items.map(async (item) => {
           const cardInfo = await getMovieInfoCard(item.movie);
           const myRating = {};
-          myRating.my_rating = ratingsObj.ratings.find(
+          myRating.my_rating = ratingsObj?.ratings.find(
             (rating) => rating.movie.ids.trakt === item.movie.ids.trakt
           );
           items.push({ ...item, ...cardInfo, ...myRating });

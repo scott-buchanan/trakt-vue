@@ -7,7 +7,7 @@ export const useStore = defineStore('main', {
   state: () => ({
     data: null,
     page: 1,
-    filter: { label: 'Watched History', value: 'history' },
+    filter: { label: 'Trending', value: 'trending' },
     filterType: null,
     loaded: false,
     tokens: null,

@@ -93,7 +93,8 @@
                   </span>
                 </div>
                 <div class="flex no-wrap">
-                  <div :class="['flex', 'q-mb-md', 'info']">
+                  <div :class="['flex', 'info']">
+                    <!-- TECHNICAL DETAILS -->
                     <div v-for="item in technicalDetails" :key="item.value">
                       <template v-if="item.label !== 'production companies' && item.value">
                         <span>{{ item.label }}: </span>{{ item.value }}
@@ -126,43 +127,59 @@
                     </q-tooltip>
                   </div>
                 </div>
-                <div class="ratings">
-                  <div>
-                    <a :href="getIMDbLink()" target="blank">
+                <!-- LINKS -->
+                <div :class="['info', 'q-mb-md', 'q-mt-xs']">
+                  <span>Links: </span>
+                  <template v-for="(value, key) in info.ids" :key="key">
+                    <template v-if="getLink(key, value)">
+                      <a
+                        :href="getLink(key, value).value"
+                        target="blank"
+                        style="text-decoration: none"
+                      >
+                        <q-badge color="secondary" text-color="black" class="q-mx-xs" outline>{{
+                          getLink(key, value).label
+                        }}</q-badge>
+                      </a>
+                    </template>
+                  </template>
+                </div>
+                <div class="flex">
+                  <!-- RATINGS -->
+                  <div class="ratings">
+                    <div v-if="info.imdb_rating">
                       <img src="@/assets/imdb_tall.png" alt="IMDb" />
-                    </a>
-                    <div v-if="info.imdb_rating">{{ info.imdb_rating }}</div>
-                  </div>
-                  <div>
-                    <a :href="getTraktLink()" target="blank">
-                      <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
-                    </a>
+                      <div>{{ info.imdb_rating }}</div>
+                    </div>
                     <div v-if="info.trakt_rating && info.trakt_rating !== '0.0'">
-                      {{ info.trakt_rating }}
+                      <img src="@/assets/trakt-icon-red.svg" alt="Trakt" />
+                      <div>{{ info.trakt_rating }}</div>
+                    </div>
+                    <div v-if="info.tmdb_rating && info.tmdb_rating !== '0.0'">
+                      <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
+                      <div>{{ info.tmdb_rating }}</div>
                     </div>
                   </div>
-                  <div v-if="info.tmdb_rating && info.tmdb_rating !== '0.0'">
-                    <img src="@/assets/tmdb_tall.svg" alt="The Movie DB" />
-                    <div>{{ info.tmdb_rating }}</div>
-                  </div>
-                  <div>
-                    <Rating :item="info" :rating="info.my_rating" />
-                  </div>
-                  <div v-if="info.trailer">
-                    <q-btn
-                      icon="slideshow"
-                      label="Trailer"
-                      color="secondary"
-                      flat
-                      @click="showTrailer = true"
-                    />
+                  <div class="flex q-mb-sm">
+                    <div class="q-mr-sm">
+                      <Rating :item="info" :rating="info.my_rating" />
+                    </div>
+                    <div v-if="info.trailer">
+                      <q-btn
+                        icon="slideshow"
+                        label="Trailer"
+                        color="secondary"
+                        outline
+                        @click="showTrailer = true"
+                      />
+                    </div>
                   </div>
                 </div>
                 <p class="q-mb-lg">{{ info.overview }}</p>
               </div>
             </div>
             <div>
-              <!-- list show seasons -->
+              <!-- SHOW SEASONS -->
               <div v-if="mType === 'show'">
                 <h2>
                   {{ seasonLength }}
@@ -209,7 +226,7 @@
                   </div>
                 </div>
               </div>
-              <!-- List episodes in season -->
+              <!-- SEASONS EPISODES -->
               <div v-if="mType === 'season'">
                 <h1>{{ info.tmdb_data?.episodes.length }} Episodes</h1>
                 <div class="row">
@@ -322,7 +339,7 @@ export default {
       ratingTimeoutId: ref(null),
       reviews: ref([]),
       store,
-      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user')).user),
       watchedProgress: ref(0),
       trailerUrl: ref(null),
       showTrailer: ref(false),
@@ -334,7 +351,6 @@ export default {
     };
   },
   created() {
-    console.log(process.env.YOUTUBE_API_KEY);
     this.store.updateMenuVisible(false);
 
     this.trailerUrl = this.info.trailer?.split('v=')[1]; // eslint-disable-line
@@ -399,11 +415,34 @@ export default {
     handleEpisodeClick(item) {
       this.$emit('episodeClick', item);
     },
-    getIMDbLink() {
-      if (this.info.type === 'season') {
-        return `https://www.imdb.com/title/${this.info.show.ids.imdb}/episodes?season=${this.info.season}`;
+    getLink(kind, id) {
+      switch (kind) {
+        case 'imdb':
+          return {
+            label: 'IMDb',
+            value: `https://www.imdb.com/title/${id}${
+              this.info.season ? `/episodes?season=${this.info.season}` : ''
+            }`,
+          };
+        case 'tmdb':
+          return {
+            label: 'TMDB',
+            value: `https://themoviedb.org/${this.info.type}/${id}${
+              this.info.season ? `/season/${this.info.season}` : ''
+            }${this.info.season ? `/episode/${this.info.number}` : ''}`,
+          };
+        case 'tvdb':
+          return false;
+        case 'slug':
+          return {
+            label: 'Trakt',
+            value: `https://trakt.tv/${this.info.type}s/${id}${
+              this.info.season ? `/season/${this.info.season}` : ''
+            }${this.info.season ? `/episode/${this.info.number}` : ''}`,
+          };
+        default:
+          return false;
       }
-      return `https://www.imdb.com/title/${this.info.ids.imdb}`;
     },
     getTraktLink() {
       if (this.info.type === 'season') {
@@ -508,7 +547,7 @@ button {
     align-items: center;
     margin-bottom: $space-md;
   }
-  & a > img {
+  & div > img {
     width: 35px;
   }
   & > div > div:nth-child(2) {
@@ -523,6 +562,9 @@ button {
   }
   & span {
     @include darkText;
+  }
+  & a {
+    color: white;
   }
 }
 .certification {

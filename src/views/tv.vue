@@ -132,7 +132,7 @@ export default {
               ? await getShowInfoCard(item.show)
               : await getEpisodeInfoCard(item.show, item.episode);
           const myRating = {};
-          myRating.my_rating = ratingsObj.ratings.find((rating) => {
+          myRating.my_rating = ratingsObj?.ratings.find((rating) => {
             if (mType === 'show') {
               return !('episode' in rating) && rating.show.ids.trakt === item.show.ids.trakt;
             }
