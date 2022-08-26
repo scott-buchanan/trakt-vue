@@ -95,7 +95,11 @@
                 <div class="flex no-wrap">
                   <div :class="['flex', 'info']">
                     <!-- TECHNICAL DETAILS -->
-                    <div v-for="item in technicalDetails" :key="item.value">
+                    <div
+                      class="technical-details"
+                      v-for="item in technicalDetails"
+                      :key="item.value"
+                    >
                       <template v-if="item.label !== 'production companies' && item.value">
                         <span>{{ item.label }}: </span>{{ item.value }}
                       </template>
@@ -631,6 +635,11 @@ button {
     top: 5px;
     right: 5px;
     border-radius: 5px;
+  }
+}
+.technical-details {
+  & a {
+    color: $accent;
   }
 }
 </style>
