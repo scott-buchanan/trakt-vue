@@ -4,8 +4,9 @@
     :info="info"
     :poster="info.poster"
     :title="info.title"
-    :subTitle="info.year"
+    :subTitle="info.tmdb_data.name"
     :technicalDetails="arrDetails"
+    :linkIds="info.show.ids"
     mType="season"
     @episodeClick="handleEpisodeClick"
   />
@@ -61,17 +62,10 @@ export default {
       this.store.updateLoading(false);
 
       this.info = await getSeasonDetails(this.$route.params.show, this.$route.params.season);
-      console.log(this.info);
-      // this.arrDetails = [
-      //   { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
-      //   { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },
-      //   { label: 'runtime', value: `${this.info.runtime} minutes` },
-      //   { label: 'genres', value: this.genreListString },
-      //   { label: 'first aired', value: this.formattedDate(this.info.first_aired) },
-      //   { label: 'country', value: this.info.country.toUpperCase() },
-      //   { label: 'network', value: this.info.network },
-      //   { label: 'languages', value: this.languageListString },
-      // ];
+      this.arrDetails = [
+        { label: 'aired', value: this.formattedDate(this.info.tmdb_data.air_date) },
+        { label: 'network', value: this.info.network },
+      ];
 
       this.store.updateLoading(true);
     },

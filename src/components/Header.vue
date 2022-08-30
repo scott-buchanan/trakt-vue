@@ -220,6 +220,7 @@ export default {
     goSearch(event) {
       if (this.searchTypedValue?.length > 0) {
         if (event.key?.toLowerCase() === 'enter' || event.type === 'click') {
+          this.store.updateMenuVisible(false);
           const searchTerm = this.searchTypedValue;
           this.searchTypedValue = null;
           this.autocompleteApiResults = [];

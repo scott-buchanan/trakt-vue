@@ -306,3 +306,11 @@ export async function getSearchResults(keyword, page = 1) {
   );
   return returnVal.sort((a, b) => b.popularity - a.popularity);
 }
+
+export async function getMovieCollection(collectionId) {
+  const response = await axios({
+    method: 'GET',
+    url: `https://api.themoviedb.org/3/collection/${collectionId}?api_key=89c6bd3331244e97eed61741fc798ab5`,
+  });
+  return response.data;
+}

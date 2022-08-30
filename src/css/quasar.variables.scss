@@ -28,12 +28,29 @@ $space-md: $space-base * 1.5 !default;
 $space-lg: $space-base * 3 !default;
 
 @mixin background-style {
-  border-radius: 5px;
-  background: rgba(0, 0, 0, $opacity-back);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, $opacity-back);
 }
 
 @mixin darkText {
-  text-transform: uppercase;
-  color: $accent;
-  font-weight: 500;
+    text-transform: uppercase;
+    color: $accent;
+    font-weight: 500;
+}
+
+@mixin text-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-size: revert;
+    line-height: revert;
+    margin-top: 0;
 }

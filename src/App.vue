@@ -205,13 +205,16 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
 @import '@/css/quasar.variables.scss';
 
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
   color: white;
-  overflow: overlay;
 }
 a,
 a:visited,
@@ -223,12 +226,12 @@ a:hover {
   text-decoration: underline;
 }
 h1 {
-  font-size: 24px !important;
-  line-height: 1 !important;
+  font-size: 24px;
+  line-height: 1;
 }
 h2 {
-  font-size: 24px !important;
-  line-height: 1 !important;
+  font-size: 24px;
+  line-height: 1;
 }
 a,
 a:hover,

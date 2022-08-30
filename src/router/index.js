@@ -5,9 +5,11 @@ import {
   getToken,
   getTraktSettings,
   getMyShowRatings,
+  getMySeasonRatings,
   getMyEpisodeRatings,
   getMyMovieRatings,
   getMyLikes,
+  getMyWatchedMovies,
 } from '@/api/trakt';
 
 const routes = [
@@ -90,6 +92,19 @@ router.beforeEach(async (to, from, next) => {
       });
     }
 
+    // get season ratings
+    const mySeasonRatings = await getMySeasonRatings(1);
+    const storedSeasonRatings = JSON.parse(localStorage.getItem('trakt-vue-season-ratings'));
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-season-ratings', JSON.stringify(mySeasonRatings));
+    if (storedSeasonRatings?.lastModified !== mySeasonRatings.lastModified) {
+      // only get the big rating object if new ratings have been added
+      getMySeasonRatings().then((remainingRatings) => {
+        const total = { ...mySeasonRatings, ...remainingRatings };
+        localStorage.setItem('trakt-vue-season-ratings', JSON.stringify(total));
+      });
+    }
+
     // get episode ratings
     const myEpRatings = await getMyEpisodeRatings(1);
     const storedShowRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
@@ -132,6 +147,11 @@ router.beforeEach(async (to, from, next) => {
         localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
       }
     }
+
+    // get movie watched
+    const myWatched = await getMyWatchedMovies();
+    // set to localStorage here to eliminate delay
+    localStorage.setItem('trakt-vue-watched-movies', JSON.stringify(myWatched));
   } else if (urlParams.get('code')) {
     // if no tokens were present and we fell into the else, we get redirected
     // with query: code and put tokens into local storage

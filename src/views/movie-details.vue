@@ -6,6 +6,7 @@
     :title="info.title"
     :subTitle="info.year"
     :technicalDetails="arrDetails"
+    :linkIds="info.ids"
     mType="movie"
   />
 </template>
@@ -89,7 +90,6 @@ export default {
       this.arrDetails = [
         { label: 'runtime', value: `${this.info.runtime} minutes` },
         { label: 'released', value: `${this.formattedDate(this.info.released)}` },
-        { label: 'in', value: this.info.tmdb_data.belongs_to_collection?.name },
         { label: 'country', value: this.info.country?.toUpperCase() },
         { label: 'languages', value: this.languageListString },
         {

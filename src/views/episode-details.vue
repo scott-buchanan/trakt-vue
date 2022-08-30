@@ -6,6 +6,7 @@
     :info="info"
     :poster="info.season_poster"
     :technicalDetails="arrDetails"
+    :linkIds="info.show.ids"
     mType="episode"
   />
 </template>

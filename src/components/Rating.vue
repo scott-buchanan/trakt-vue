@@ -1,51 +1,53 @@
 <template>
-  <div
-    v-if="myRating"
-    class="flex"
-    @mouseenter="openRatingPopup(true)"
-    @mouseleave="closeRatingPopup(true)"
-    @focus="openRatingPopup(true)"
-    @blur="closeRatingPopup(true)"
-  >
-    <q-avatar size="35px" id="avatar">
-      <q-img :src="user.images.avatar.full" :alt="user.name" referrerpolicy="no-referrer" />
-    </q-avatar>
-    <div class="rating">
-      <div>{{ myRating === 10 ? myRating : myRating.toFixed(1) }}</div>
+  <div v-if="user">
+    <div
+      v-if="myRating"
+      class="flex"
+      @mouseenter="openRatingPopup(true)"
+      @mouseleave="closeRatingPopup(true)"
+      @focus="openRatingPopup(true)"
+      @blur="closeRatingPopup(true)"
+    >
+      <q-avatar size="35px" id="avatar">
+        <q-img :src="user.images.avatar.full" :alt="user.name" referrerpolicy="no-referrer" />
+      </q-avatar>
+      <div class="rating">
+        <div>{{ myRating === 10 ? myRating : myRating.toFixed(1) }}</div>
+      </div>
     </div>
+    <q-btn v-else id="btnRate" outline color="secondary" label="Rate" @click="openRatingPopup" />
+    <q-menu
+      v-model="ratingPopOpen"
+      :target="myRating ? '#avatar' : '#btnRate'"
+      dark
+      transition-show="jump-up"
+      transition-hide="jump-down"
+      anchor="top middle"
+      self="top middle"
+      class="q-pa-sm"
+      :offset="[0, 50]"
+      @focus="openRatingPopup"
+      @mouseenter="openRatingPopup"
+      @mouseleave="closeRatingPopup(true)"
+      @blur="closeRatingPopup"
+    >
+      <q-rating
+        v-model="myRating"
+        max="10"
+        size="1.5em"
+        icon="star_border"
+        icon-selected="star"
+        icon-half="star_half"
+        @update:model-value="rate"
+      />
+    </q-menu>
   </div>
-  <q-btn v-else id="btnRate" outline color="secondary" label="Rate" @click="openRatingPopup" />
-  <q-menu
-    v-model="ratingPopOpen"
-    :target="myRating ? '#avatar' : '#btnRate'"
-    dark
-    transition-show="jump-up"
-    transition-hide="jump-down"
-    anchor="top middle"
-    self="top middle"
-    class="q-pa-sm"
-    :offset="[0, 50]"
-    @focus="openRatingPopup"
-    @mouseenter="openRatingPopup"
-    @mouseleave="closeRatingPopup(true)"
-    @blur="closeRatingPopup"
-  >
-    <q-rating
-      v-model="myRating"
-      max="10"
-      size="1.5em"
-      icon="star_border"
-      icon-selected="star"
-      icon-half="star_half"
-      @update:model-value="rate"
-    />
-  </q-menu>
 </template>
 
 <script>
 import { ref } from 'vue';
 // api
-import { rateShow, rateEpisode, rateMovie } from '@/api/trakt';
+import { rateShow, rateSeason, rateEpisode, rateMovie } from '@/api/trakt';
 
 export default {
   name: 'Reviews',
@@ -64,7 +66,7 @@ export default {
   setup() {
     return {
       ratingPopOpen: ref(false),
-      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user')).user),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))?.user),
       myRating: ref(0),
       ratingTimeoutId: ref(null),
     };
@@ -91,18 +93,21 @@ export default {
         delay ? 500 : 0
       );
     },
-    rate() {
+    async rate() {
       let response;
       switch (this.item.type) {
         case 'episode':
-          response = rateEpisode(this.item, this.myRating);
+          response = await rateEpisode(this.item, this.myRating);
           break;
         case 'show':
-          response = rateShow(this.item, this.myRating);
+          response = await rateShow(this.item, this.myRating);
+          break;
+        case 'season':
+          response = await rateSeason(this.item, this.myRating);
           break;
         default:
           // movie
-          response = rateMovie(this.item, this.myRating);
+          response = await rateMovie(this.item, this.myRating);
       }
       if (response) {
         this.$q.notify({

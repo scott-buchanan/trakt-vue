@@ -6,6 +6,7 @@
     :title="info.title"
     :subTitle="info.year"
     :technicalDetails="arrDetails"
+    :linkIds="info.ids"
     mType="show"
   />
 </template>
@@ -29,7 +30,6 @@ export default {
       info: ref({}),
       arrDetails: ref([]),
       loaded: ref(false),
-      // watchedProgress: ref(0),
       store,
     };
   },
@@ -86,7 +86,6 @@ export default {
       this.store.updateLoading(false);
 
       this.info = await getShowDetails(this.$route.params.show);
-      console.log(this.info);
       this.arrDetails = [
         { label: 'seasons', value: this.info.tmdb_data.number_of_seasons },
         { label: 'episodes', value: this.info.tmdb_data.number_of_episodes },
@@ -97,6 +96,18 @@ export default {
         { label: 'network', value: this.info.network },
         { label: 'languages', value: this.languageListString },
       ];
+      // // add to episode watched array
+      // if (this.info.watched_progress?.completed > 0) {
+      //   const watched = localStorage.getItem('trakt-vue-watched-episodes')
+      //     ? JSON.parse(localStorage.getItem('trakt-vue-watched-episodes'))
+      //     : [];
+      //   if (watched[this.info.show.ids.slug]) {
+      //     watched[this.info.show.ids.slug] = this.info.watched_progress;
+      //   } else {
+      //     watched.push({ [this.info.show.ids.slug]: this.info.watched_progress });
+      //   }
+      //   localStorage.setItem('trakt-vue-watched-episodes', JSON.stringify(watched));
+      // }
 
       this.store.updateLoading(true);
     },

@@ -46,6 +46,7 @@
             <div class="likes-replies">
               <div class="q-mr-sm">
                 <q-btn
+                  v-if="user"
                   :icon="likedReview(review) ? 'thumb_up_alt' : 'thumb_up_off_alt'"
                   color="secondary"
                   size="md"
@@ -55,6 +56,7 @@
                   :ripple="false"
                   @click="likeReview(review)"
                 />
+                <q-icon v-else name="thumb_up_off_alt" color="secondary" size="24px" />
                 {{ review.likes === 1 ? `${review.likes} like` : `${review.likes} likes` }}
               </div>
               <div v-if="review.replies > 0">
@@ -149,6 +151,7 @@ export default {
       showUnrated: ref(false),
       showUnratedButton: ref(true),
       likes: ref(JSON.parse(localStorage.getItem('trakt-vue-likes'))),
+      user: localStorage.getItem('trakt-vue-user'),
     };
   },
   created() {
@@ -197,7 +200,7 @@ export default {
       }
     },
     likedReview(review) {
-      return this.likes.find((like) => like.comment.id === review.id);
+      return this.likes?.find((like) => like.comment.id === review.id);
     },
     async likeReview(review) {
       const deleteLike = this.likedReview(review);

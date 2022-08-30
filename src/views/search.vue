@@ -1,46 +1,19 @@
 <template>
   <div v-if="loaded" class="search-container">
     <div>
-      <h1 class="q-mt-sm">Search: {{ searchTerm }}</h1>
-      <q-scroll-area :thumb-style="{ opacity: 0.5 }" :class="['full-height', 'full-width']">
-        <div class="row">
-          <button
+      <h1 class="search-heading">Search: {{ searchTerm }}</h1>
+      <q-scroll-area :thumb-style="{ opacity: 0.5 }" class="scroll-container">
+        <ItemCardContainer>
+          <ItemCard
             v-for="result in searchResults"
             :key="result.id"
-            :class="[
-              'search-result-button',
-              'q-mb-sm',
-              'text-left',
-              screenGreaterThan.md ? 'col-6 pad' : 'col-12',
-            ]"
+            :title="result.media_type === 'tv' ? result.name : result.title"
+            :poster="result.poster_path"
+            :backdrop="result.backdrop_path"
+            :overview="result.overview"
             @click="goToDetails(result)"
-          >
-            <div
-              class="search-result"
-              :style="{
-                backgroundImage: `${backgroundGradient()} url(https://image.tmdb.org/t/p/w1280/${
-                  result.backdrop_path
-                })`,
-              }"
-            >
-              <img
-                v-if="result.poster_path"
-                :src="`https://image.tmdb.org/t/p/w500/${result.poster_path}`"
-                :alt="result.name"
-              />
-              <img v-else src="@/assets/fallback-tv.jpg" alt="generic poster" />
-              <div class="q-pa-md column no-wrap">
-                <h1 class="q-mt-none">
-                  {{ result.media_type === 'tv' ? result.name : result.title }}
-                </h1>
-                <h2>{{ result.media_type === 'tv' ? 'TV Show' : 'Movie' }}</h2>
-                <p :class="['q-mb-none', 'col-grow', 'truncate-text']">
-                  {{ result.overview }}
-                </p>
-              </div>
-            </div>
-          </button>
-        </div>
+          />
+        </ItemCardContainer>
       </q-scroll-area>
     </div>
   </div>
@@ -69,9 +42,11 @@ import { getSearchResults } from '@/api/tmdb';
 // store
 import { useStore } from '@/store/index';
 // components
+import ItemCardContainer from '@/components/ItemCardContainer.vue';
+import ItemCard from '@/components/ItemCard.vue';
 
 export default {
-  components: {},
+  components: { ItemCardContainer, ItemCard },
   name: 'Search',
   setup() {
     const store = useStore();
@@ -139,13 +114,26 @@ export default {
 h2 {
   font-size: 1rem !important;
 }
+.search-heading {
+  height: 40px;
+  @include text-ellipsis;
+}
 .search-container {
   height: 100%;
   padding: 0 $space-sm $space-sm 0;
+  width: 100%;
+  max-width: 100%;
   & > div {
     height: 100%;
+    width: 100%;
+    max-width: 100%;
     padding: $space-sm;
     @include background-style;
+  }
+  & .scroll-container {
+    height: calc(100% - 60px);
+    width: 100%;
+    max-width: 100%;
   }
 }
 .search-result-button {

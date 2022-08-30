@@ -20,9 +20,9 @@
                 },
               }"
             >
-              <q-img :src="poster" alt="" />
+              <q-img class="poster-image" :src="poster" alt="" />
             </router-link>
-            <q-img v-else :src="poster" alt="" />
+            <q-img v-else class="poster-image" :src="poster" alt="" />
           </div>
           <div class="full-width">
             <div :class="['flex', { 'no-wrap': screenGreaterThan.xs }]">
@@ -48,10 +48,14 @@
                   alt=""
                 />
               </div>
-              <div class="titles">
+              <!-- TITLES -->
+              <div :class="['titles', 'full-width']">
                 <router-link
                   v-if="mType === 'episode' || mType === 'season'"
-                  :to="{ name: 'show-details', params: { show: info.show.ids.slug } }"
+                  :to="{
+                    name: 'show-details',
+                    params: { show: info.show.ids.slug },
+                  }"
                 >
                   <q-img
                     role="heading"
@@ -92,7 +96,33 @@
                     </q-badge>
                   </span>
                 </div>
-                <div class="flex no-wrap">
+                <div :class="['flex', 'q-mb-md']">
+                  <!-- WATCHED INFO -->
+                  <div v-if="info.watched_progress?.last_watched_at" :class="['flex', 'info']">
+                    <div>
+                      <span>last watched:&nbsp;</span>
+                      {{ formattedDateTime(info.watched_progress.last_watched_at) }}
+                    </div>
+                    <div v-if="info.watched_progress?.type === 'movie'">
+                      <span>plays:&nbsp;</span>
+                      {{ info.watched_progress.plays }}
+                    </div>
+                  </div>
+                  <!-- LINKS -->
+                  <div class="info">
+                    <span>Links: </span>
+                    <template v-for="(value, key) in linkIds" :key="key">
+                      <template v-if="links[key]">
+                        <a :href="links[key].value" target="blank" style="text-decoration: none">
+                          <q-badge color="secondary" text-color="black" class="q-mx-xs" outline>{{
+                            links[key].label
+                          }}</q-badge>
+                        </a>
+                      </template>
+                    </template>
+                  </div>
+                </div>
+                <div :class="['flex', 'no-wrap', 'q-mb-md']">
                   <div :class="['flex', 'info']">
                     <!-- TECHNICAL DETAILS -->
                     <div
@@ -105,14 +135,17 @@
                       </template>
                       <template v-else-if="item.value">
                         <span>{{ item.label }}: </span>{{ truncateDetails(item.value) }}
-                        <a href="javascript:" @click="seeMoreDetails = !seeMoreDetails">{{
-                          seeMoreDetails ? 'See less' : 'See more'
-                        }}</a>
+                        <a
+                          v-if="item.value.split(',').length > 2"
+                          href="javascript:"
+                          @click="seeMoreDetails = !seeMoreDetails"
+                          >{{ seeMoreDetails ? 'See less' : 'See more' }}</a
+                        >
                       </template>
                     </div>
                   </div>
                   <q-space />
-                  <div v-show="info.watched_progress">
+                  <div v-if="info.watched_progress?.type === 'show'">
                     <q-knob
                       readonly
                       :max="1"
@@ -130,23 +163,9 @@
                       {{ watchedPercent }}
                     </q-tooltip>
                   </div>
-                </div>
-                <!-- LINKS -->
-                <div :class="['info', 'q-mb-md', 'q-mt-xs']">
-                  <span>Links: </span>
-                  <template v-for="(value, key) in info.ids" :key="key">
-                    <template v-if="getLink(key, value)">
-                      <a
-                        :href="getLink(key, value).value"
-                        target="blank"
-                        style="text-decoration: none"
-                      >
-                        <q-badge color="secondary" text-color="black" class="q-mx-xs" outline>{{
-                          getLink(key, value).label
-                        }}</q-badge>
-                      </a>
-                    </template>
-                  </template>
+                  <div v-else-if="info.watched_progress?.last_watched_at">
+                    <q-icon name="check_circle_outline" size="lg" color="positive" />
+                  </div>
                 </div>
                 <div class="flex">
                   <!-- RATINGS -->
@@ -179,10 +198,18 @@
                     </div>
                   </div>
                 </div>
-                <p class="q-mb-lg">{{ info.overview }}</p>
+                <!-- OVERVIEW -->
+                <p v-if="info.tmdb_data.overview" class="q-mb-lg">{{ info.tmdb_data.overview }}</p>
               </div>
             </div>
             <div>
+              <!-- MOVIE COLLECTION -->
+              <MovieCollection
+                v-if="info.type === 'movie' && info.tmdb_data.belongs_to_collection?.id"
+                :movie="info"
+                :collectionId="info.tmdb_data.belongs_to_collection?.id"
+                class="q-mb-lg"
+              />
               <!-- SHOW SEASONS -->
               <div v-if="mType === 'show'">
                 <h2>
@@ -204,7 +231,10 @@
                         :src="season.poster_path"
                         :alt="season.name"
                       >
-                        <div v-if="season.name.toLowerCase() !== 'specials'" class="season-watched">
+                        <div
+                          v-if="user && season.name.toLowerCase() !== 'specials'"
+                          class="season-watched"
+                        >
                           <q-knob
                             readonly
                             :max="1"
@@ -232,19 +262,25 @@
               </div>
               <!-- SEASONS EPISODES -->
               <div v-if="mType === 'season'">
-                <h1>{{ info.tmdb_data?.episodes.length }} Episodes</h1>
-                <div class="row">
+                <h1>
+                  {{ info.tmdb_data?.episodes.length }} Episodes
+                  <small v-if="unairedEpisodes > 0">
+                    ({{ unairedEpisodes }} unaired episodes)
+                  </small>
+                </h1>
+                <ItemCardContainer>
                   <ItemCard
                     episode
                     v-for="episode in info.tmdb_data?.episodes"
                     :key="episode.name"
+                    v-show="isBeforeToday(episode.air_date)"
                     :title="episodeTitle(episode)"
                     :poster="episode.backdrop.backdrop_sm"
                     :overview="episode.overview"
                     :backdrop="episode.backdrop.backdrop_lg"
                     @click="handleEpisodeClick(episode)"
                   />
-                </div>
+                </ItemCardContainer>
               </div>
               <Actors
                 v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
@@ -259,7 +295,7 @@
       <Actors v-if="screenGreaterThan.sm && info.actors?.length > 0" :actors="info.actors" />
     </div>
   </div>
-  <q-dialog v-model="showTrailer" :transition-duration="500" @hide="closeTrailer">
+  <q-dialog v-model="showTrailer" :transition-duration="500" @hide="closeTrailer" class="trailer">
     <div class="trailer">
       <div v-if="trailerHasError" :style="{ backgroundImage: `url(${trailerErrorBack})` }">
         <div class="trailer-error-text">
@@ -291,6 +327,7 @@
 import { ref } from 'vue';
 import { YoutubeIframe } from '@vue-youtube/component';
 import axios from 'axios';
+import dayjs from 'dayjs';
 // store
 import { useStore } from '@/store/index';
 // components
@@ -298,11 +335,21 @@ import Actors from '@/components/Actors.vue';
 import Rating from '@/components/Rating.vue';
 import Reviews from '@/components/Reviews.vue';
 import ItemCard from '@/components/ItemCard.vue';
+import ItemCardContainer from '@/components/ItemCardContainer.vue';
+import MovieCollection from '@/components/MovieCollection.vue';
 // assets
 import * as trailerErrorPic from '@/assets/trailer-error.jpg';
 
 export default {
-  components: { Actors, Reviews, Rating, YoutubeIframe, ItemCard },
+  components: {
+    Actors,
+    Reviews,
+    Rating,
+    YoutubeIframe,
+    ItemCard,
+    ItemCardContainer,
+    MovieCollection,
+  },
   name: 'detailsTemplate',
   props: {
     info: {
@@ -332,18 +379,20 @@ export default {
       type: String,
       required: true,
     },
+    linkIds: {
+      type: Object,
+      default: null,
+    },
   },
   setup() {
     const store = useStore();
     return {
-      actors: ref([]),
-      loaded: ref(false),
       myRating: ref(0),
       ratingPopOpen: ref(false),
       ratingTimeoutId: ref(null),
       reviews: ref([]),
       store,
-      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user')).user),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))?.user),
       watchedProgress: ref(0),
       trailerUrl: ref(null),
       showTrailer: ref(false),
@@ -360,12 +409,14 @@ export default {
     this.trailerUrl = this.info.trailer?.split('v=')[1]; // eslint-disable-line
 
     if (this.mType === 'show') {
+      // move specials to end of array
       this.seasons = [...this.info.tmdb_data.seasons];
       if (this.seasons[0].name.toLowerCase() === 'specials') {
         const specials = this.seasons.shift();
         this.seasons.push(specials);
       }
-      this.info.watched_progress.seasons.forEach((season, index) => {
+      // set watched progress for each season
+      this.info.watched_progress?.seasons.forEach((season, index) => {
         const delay = season.number > 1 ? season.number * 200 + 500 : 500;
         this.seasons[index].watched_progress = 0;
         setTimeout(() => {
@@ -376,7 +427,6 @@ export default {
         }, delay);
       });
     }
-
     // for animation purposes
     if (this.info?.watched_progress) {
       setTimeout(() => {
@@ -386,13 +436,48 @@ export default {
     }
   },
   computed: {
+    links() {
+      const linkSeason = this.info.type === 'season';
+      const trakt = this.info.type === 'episode' ? 'trakt' : 'slug';
+      return {
+        imdb: {
+          label: 'IMDb',
+          value: `https://www.imdb.com/title/${this.linkIds.imdb}${
+            linkSeason ? `/episodes?season=${this.info.season}` : ''
+          }`,
+        },
+        tmdb: {
+          label: 'TMDb',
+          value: `https://themoviedb.org/${this.info.type === 'movie' ? this.info.type : 'tv'}/${
+            this.linkIds.tmdb
+          }${this.info.season ? `/season/${this.info.season}` : ''}${
+            this.info.type === 'episode' ? `/episode/${this.info.number}` : ''
+          }`,
+        },
+        [trakt]: {
+          label: 'Trakt',
+          value: `https://trakt.tv/${this.info.type === 'movie' ? this.info.type : 'show'}s/${
+            this.linkIds.slug
+          }${this.info.season ? `/seasons/${this.info.season}` : ''}${
+            this.info.type === 'episode' ? `/episodes/${this.info.number}` : ''
+          }`,
+        },
+      };
+    },
+    unairedEpisodes() {
+      let count = 0;
+      this.info.tmdb_data?.episodes.forEach((episode) => {
+        if (new Date(episode.air_date) > new Date()) count += 1;
+      });
+      return count;
+    },
     seasonLength() {
       return this.info.tmdb_data.seasons.filter(
         (season) => season.name.toLowerCase() !== 'specials'
       ).length;
     },
     watchedPercent() {
-      return `${this.info.watched_progress.completed} of ${this.info.watched_progress.aired} episodes watched`;
+      return `${this.info.watched_progress?.completed} of ${this.info.watched_progress?.aired} episodes watched`;
     },
     detailsBackground() {
       return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
@@ -408,6 +493,12 @@ export default {
     },
   },
   methods: {
+    isBeforeToday(episodeDate) {
+      return new Date(episodeDate) < new Date();
+    },
+    formattedDateTime(wDate) {
+      return `${dayjs(wDate).format('MMM DD, YYYY')} at ${dayjs(wDate).format('h:mma')}`;
+    },
     truncateDetails(details) {
       return this.seeMoreDetails ? details : details.split(',', 2).toString();
     },
@@ -418,44 +509,6 @@ export default {
     },
     handleEpisodeClick(item) {
       this.$emit('episodeClick', item);
-    },
-    getLink(kind, id) {
-      switch (kind) {
-        case 'imdb':
-          return {
-            label: 'IMDb',
-            value: `https://www.imdb.com/title/${id}${
-              this.info.season ? `/episodes?season=${this.info.season}` : ''
-            }`,
-          };
-        case 'tmdb':
-          return {
-            label: 'TMDB',
-            value: `https://themoviedb.org/${this.info.type}/${id}${
-              this.info.season ? `/season/${this.info.season}` : ''
-            }${this.info.season ? `/episode/${this.info.number}` : ''}`,
-          };
-        case 'tvdb':
-          return false;
-        case 'slug':
-          return {
-            label: 'Trakt',
-            value: `https://trakt.tv/${this.info.type}s/${id}${
-              this.info.season ? `/season/${this.info.season}` : ''
-            }${this.info.season ? `/episode/${this.info.number}` : ''}`,
-          };
-        default:
-          return false;
-      }
-    },
-    getTraktLink() {
-      if (this.info.type === 'season') {
-        return `https://trakt.tv/shows/${this.info.show.ids.slug}/seasons/${this.info.season}`;
-      }
-      if (this.info.type === 'episode') {
-        return `https://trakt.tv/shows/${this.info.show.ids.slug}/seasons/${this.info.season}/episodes/${this.info.number}`;
-      }
-      return `https://trakt.tv/${this.info.type}s/${this.info.ids.slug}`;
     },
     trailerReady(event) {
       event.target.playVideo();
@@ -488,7 +541,7 @@ export default {
 @import '@/css/quasar.variables.scss';
 
 h1 {
-  font-size: 18px !important;
+  font-size: 18px;
 }
 button {
   font-weight: 600;
@@ -533,7 +586,7 @@ button {
   width: 40%;
   min-width: 200px;
   max-width: 600px;
-  & > div {
+  & .poster-image {
     border-radius: 5px;
     overflow: hidden;
   }

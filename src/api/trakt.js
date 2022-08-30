@@ -182,6 +182,19 @@ export async function getEpisodeSummary(showId, season, episode) {
   return response.data;
 }
 
+export async function getSeasonSummary(showId, season) {
+  const response = await axios({
+    method: 'GET',
+    url: `https://api.trakt.tv/shows/${showId}/seasons?extended=full`,
+    headers: {
+      'Content-Type': 'application/json',
+      'trakt-api-version': '2',
+      'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+    },
+  });
+  return response.data.find((item) => item.number === season);
+}
+
 export async function getEpisodeRating(showId, season, episode) {
   try {
     const response = await axios({
@@ -238,24 +251,32 @@ export async function getShowActors(showId) {
   return response.data;
 }
 
-// export async function getEpisodeActorsTrakt(show, episode) {
-//   const response = await axios({
-//     method: 'GET',
-//     url: `https://api.trakt.tv/shows/${show.ids.trakt}/seasons/${episode.season}/episodes/${episode.number}/people`,
-//     headers: {
-//       'Content-Type': 'application/json',
-//       'trakt-api-version': '2',
-//       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
-//     },
-//   });
-//   return response.data;
-// }
-
 export async function getMyEpisodeRatings(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
     ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=100&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/episodes`;
+  const response = await axios({
+    method: 'GET',
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'trakt-api-version': '2',
+      'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+    },
+  });
+  const ratings = {
+    lastModified: response.headers['last-modified'],
+    ratings: response.data,
+  };
+  return ratings;
+}
+
+export async function getMySeasonRatings(page = null) {
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
+  const url = page
+    ? `https://api.trakt.tv/users/${uName}/ratings/seasons?limit=100&page=${page}`
+    : `https://api.trakt.tv/users/${uName}/ratings/seasons`;
   const response = await axios({
     method: 'GET',
     url,
@@ -385,9 +406,27 @@ export async function getComments(item, reply = false) {
 }
 
 export async function getShowWatchedProgress(showId) {
+  const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
+  if (uName) {
+    const response = await axios({
+      method: 'GET',
+      url: `https://api.trakt.tv/shows/${showId}/progress/watched?hidden=false&specials=false&count_specials=false`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+        'trakt-api-version': '2',
+        'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+      },
+    });
+    return { ...response.data, ...{ type: 'show' } };
+  }
+  return null;
+}
+
+export async function getMyWatchedMovies() {
   const response = await axios({
     method: 'GET',
-    url: `https://api.trakt.tv/shows/${showId}/progress/watched?hidden=false&specials=false&count_specials=false`,
+    url: 'https://api.trakt.tv/sync/watched/movies',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
@@ -478,7 +517,29 @@ export async function rateShow(show, rating) {
       ],
     },
   });
-  return response.status === 201;
+  return response.status === 201 || response.status === 200;
+}
+
+export async function rateSeason(season, rating) {
+  const response = await axios({
+    method: 'POST',
+    url: `https://api.trakt.tv/sync/ratings${rating === 0 ? '/remove' : ''}`,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      'trakt-api-version': '2',
+      'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
+    },
+    data: {
+      seasons: [
+        {
+          rating,
+          ids: season.ids,
+        },
+      ],
+    },
+  });
+  return response.status === 201 || response.status === 200;
 }
 
 export async function rateEpisode(episode, rating) {
@@ -522,7 +583,7 @@ export async function rateMovie(movie, rating) {
       ],
     },
   });
-  return response.status === 201;
+  return response.status === 201 || response.status === 200;
 }
 
 export async function likeComment(id, deleteComment = false) {
