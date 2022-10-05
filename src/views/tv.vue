@@ -1,8 +1,8 @@
 <template>
-  <div :class="['full-height', 'tv-container']" v-if="loaded">
+  <div :class="['full-height', 'tv-container']" v-if="store.loaded">
     <CardContainer :data="data?.items" :mType="store.filterType" />
   </div>
-  <q-footer v-if="loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
+  <q-footer v-if="store.loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
     <q-toolbar class="flex flex-center">
       <q-pagination
         v-model="page"
@@ -38,7 +38,6 @@ export default {
     return {
       data: ref({}),
       filter: ref(store.filter),
-      loaded: ref(false),
       maxPages: ref(10),
       myEpRatings: ref(null),
       myShowRatings: ref(null),
@@ -50,12 +49,11 @@ export default {
   async created() {
     this.store.$subscribe((mutated, state) => {
       let loadData = false;
-      if (state.filter && this.filter !== state.filter) {
+      if (state.filterType === 'show' && state.filter && state.filter !== this.filter) {
         loadData = true;
       }
 
       this.filter = state.filter;
-      this.loaded = state.loaded;
       this.tokens = state.tokens;
       this.page = state.page;
 
@@ -63,8 +61,12 @@ export default {
     });
 
     this.store.updateFilterType('show');
+    if (this.$route.params?.filter) {
+      this.store.updateFilter(
+        this.store.filterOptions.show.find((filter) => filter.value === this.$route.params.filter)
+      );
+    }
 
-    // we set tokens in beforeEach in router so loadData should never have missing tokens
     this.loadData();
 
     if (this.$route.query.page) {
@@ -82,8 +84,7 @@ export default {
 
       // this makes it so the card container always has a full last line
       localStorage.setItem('item-limit', this.screenGreaterThan.lg ? 21 : 20);
-
-      if (this.store.filterType === 'show' && this.filter.value === 'history') {
+      if (this.store.filterType === 'show' && this.filter?.value === 'history') {
         // get Trakt data
         this.data = await getWatchedHistory('episodes', this.page);
 
@@ -98,27 +99,27 @@ export default {
 
         this.data.items = [...items];
       } else {
-        switch (this.filter.value) {
+        switch (this.filter?.value) {
           case 'recommended':
             this.data = await getRecommendationsFromMe('shows', this.page);
             break;
-          default:
-            // default to trending
+          case 'trending':
             this.data = await getTrending('shows', this.page);
+            break;
+          default:
+            this.store.updateLoading(true);
+            return;
         }
 
         // get show ratings object from local storage
         this.myShowRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
-
         // get images and ratings
         const items = await this.fetchCardInfo('show', this.myShowRatings);
-
-        if (this.filter.value === 'recommended') {
+        if (this.filter?.value === 'recommended') {
           items.sort((a, b) => a.rank - b.rank);
-        } else if (this.filter.value === 'trending') {
+        } else if (this.filter?.value === 'trending') {
           items.sort((a, b) => b.watchers - a.watchers);
         }
-
         this.data.items = [...items];
       }
       this.store.updateLoading(true);
@@ -158,16 +159,15 @@ export default {
 @import '@/css/quasar.variables.scss';
 
 .tv-container {
-  padding: 0 $space-sm $space-sm 0;
+  padding: 0 $space-sm $space-sm $space-sm;
   & > div {
     @include background-style;
     overflow: hidden;
   }
 }
 .footer {
-  padding: 0 $space-sm $space-sm 0;
+  padding: 0 $space-sm $space-sm $space-sm;
   background-color: transparent !important;
-  padding-left: 0;
   & > div {
     @include background-style;
   }

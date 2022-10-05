@@ -1,6 +1,6 @@
 <template>
-  <div v-if="info">
-    <h1>{{ info.name }}</h1>
+  <div v-if="info" class="q-mt-lg">
+    <h2>{{ info.name }}</h2>
     <div class="posters wrap">
       <div v-for="item in info.parts" :key="item.id">
         <q-img
@@ -63,6 +63,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/css/quasar.variables.scss';
+
+h2 {
+  all: revert;
+  margin: 0 0 $space-sm 0;
+}
 .posters {
   display: flex;
   gap: 10px;

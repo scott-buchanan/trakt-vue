@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // -------- <AUTHENTICATION> -----------
 export async function getToken(code) {
-  const data = await axios({
+  const response = await axios({
     method: 'POST',
     url: 'https://api.trakt.tv/oauth/token',
     headers: { 'Content-Type': 'application/json' },
@@ -14,11 +14,11 @@ export async function getToken(code) {
       grant_type: 'authorization_code',
     },
   });
-  return { accessToken: data.data.access_token, refreshToken: data.data.refresh_token };
+  return response.data;
 }
 
 export async function getTokenFromRefresh(refreshToken, path) {
-  const data = await axios({
+  const response = await axios({
     method: 'POST',
     url: 'https://api.trakt.tv/oauth/token',
     headers: { 'Content-Type': 'application/json' },
@@ -30,7 +30,7 @@ export async function getTokenFromRefresh(refreshToken, path) {
       grant_type: 'refresh_token',
     },
   });
-  return { accessToken: data.data.access_token, refreshToken: data.data.refresh_token };
+  return response.data;
 }
 // -------- </AUTHENTICATION> -----------
 
@@ -63,7 +63,7 @@ export async function getRecommendationsFromMe(rType, page) {
     url: `https://api.trakt.tv/users/${uName}/recommendations/${rType}/rank?limit=${limit}&page=${page}`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -254,7 +254,7 @@ export async function getShowActors(showId) {
 export async function getMyEpisodeRatings(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
-    ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=100&page=${page}`
+    ? `https://api.trakt.tv/users/${uName}/ratings/episodes?limit=10&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/episodes`;
   const response = await axios({
     method: 'GET',
@@ -267,6 +267,9 @@ export async function getMyEpisodeRatings(page = null) {
   });
   const ratings = {
     lastModified: response.headers['last-modified'],
+    total: response.headers['x-pagination-item-count']
+      ? response.headers['x-pagination-item-count']
+      : response.data.length,
     ratings: response.data,
   };
   return ratings;
@@ -275,7 +278,7 @@ export async function getMyEpisodeRatings(page = null) {
 export async function getMySeasonRatings(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
-    ? `https://api.trakt.tv/users/${uName}/ratings/seasons?limit=100&page=${page}`
+    ? `https://api.trakt.tv/users/${uName}/ratings/seasons?limit=10&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/seasons`;
   const response = await axios({
     method: 'GET',
@@ -288,6 +291,9 @@ export async function getMySeasonRatings(page = null) {
   });
   const ratings = {
     lastModified: response.headers['last-modified'],
+    total: response.headers['x-pagination-item-count']
+      ? response.headers['x-pagination-item-count']
+      : response.data.length,
     ratings: response.data,
   };
   return ratings;
@@ -296,7 +302,7 @@ export async function getMySeasonRatings(page = null) {
 export async function getMyShowRatings(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
-    ? `https://api.trakt.tv/users/${uName}/ratings/shows?limit=100&page=${page}`
+    ? `https://api.trakt.tv/users/${uName}/ratings/shows?limit=10&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/shows`;
   const response = await axios({
     method: 'GET',
@@ -309,6 +315,9 @@ export async function getMyShowRatings(page = null) {
   });
   const ratings = {
     lastModified: response.headers['last-modified'],
+    total: response.headers['x-pagination-item-count']
+      ? response.headers['x-pagination-item-count']
+      : response.data.length,
     ratings: response.data,
   };
   return ratings;
@@ -317,7 +326,7 @@ export async function getMyShowRatings(page = null) {
 export async function getMyMovieRatings(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
   const url = page
-    ? `https://api.trakt.tv/users/${uName}/ratings/movies?limit=100&page=${page}`
+    ? `https://api.trakt.tv/users/${uName}/ratings/movies?limit=10&page=${page}`
     : `https://api.trakt.tv/users/${uName}/ratings/movies`;
   const response = await axios({
     method: 'GET',
@@ -330,6 +339,9 @@ export async function getMyMovieRatings(page = null) {
   });
   const ratings = {
     lastModified: response.headers['last-modified'],
+    total: response.headers['x-pagination-item-count']
+      ? response.headers['x-pagination-item-count']
+      : response.data.length,
     ratings: response.data,
   };
   return ratings;
@@ -337,13 +349,13 @@ export async function getMyMovieRatings(page = null) {
 
 export async function getMyLikes(page = null) {
   const uName = JSON.parse(localStorage.getItem('trakt-vue-user'))?.user.username;
-  const url = `https://api.trakt.tv/users/${uName}/likes/type?limit=100&page=${page}`;
+  const url = `https://api.trakt.tv/users/${uName}/likes/comments?limit=10&page=${page}`;
   const response = await axios({
     method: 'GET',
     url,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -413,7 +425,7 @@ export async function getShowWatchedProgress(showId) {
       url: `https://api.trakt.tv/shows/${showId}/progress/watched?hidden=false&specials=false&count_specials=false`,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+        Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
         'trakt-api-version': '2',
         'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
       },
@@ -429,7 +441,7 @@ export async function getMyWatchedMovies() {
     url: 'https://api.trakt.tv/sync/watched/movies',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -504,7 +516,7 @@ export async function rateShow(show, rating) {
     url: `https://api.trakt.tv/sync/ratings${rating === 0 ? '/remove' : ''}`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -526,7 +538,7 @@ export async function rateSeason(season, rating) {
     url: `https://api.trakt.tv/sync/ratings${rating === 0 ? '/remove' : ''}`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -548,7 +560,7 @@ export async function rateEpisode(episode, rating) {
     url: `https://api.trakt.tv/sync/ratings${rating === 0 ? '/remove' : ''}`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -561,7 +573,12 @@ export async function rateEpisode(episode, rating) {
       ],
     },
   });
-  return response.status === 201 || response.status === 200;
+  const success = response.status === 201 || response.status === 200;
+  // if (success) {
+  //   const ratings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
+  //   ratings.ratings.push({ rating, show: episode.show, episode: episode.ids });
+  // }
+  return success;
 }
 
 export async function rateMovie(movie, rating) {
@@ -570,7 +587,7 @@ export async function rateMovie(movie, rating) {
     url: `https://api.trakt.tv/sync/ratings${rating === 0 ? '/remove' : ''}`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },
@@ -583,7 +600,12 @@ export async function rateMovie(movie, rating) {
       ],
     },
   });
-  return response.status === 201 || response.status === 200;
+  const success = response.status === 201 || response.status === 200;
+  // if (success) {
+  //   const ratings = JSON.parse(localStorage.getItem('trakt-vue-movie-ratings'));
+  //   ratings.ratings.push({ rating, movie });
+  // }
+  return success;
 }
 
 export async function likeComment(id, deleteComment = false) {
@@ -592,7 +614,7 @@ export async function likeComment(id, deleteComment = false) {
     url: `https://api.trakt.tv/comments/${id}/like`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).accessToken}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem('trakt-vue-token')).access_token}`,
       'trakt-api-version': '2',
       'trakt-api-key': '8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3',
     },

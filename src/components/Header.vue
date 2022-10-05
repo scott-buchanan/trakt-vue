@@ -1,6 +1,9 @@
 <template>
   <q-header reveal height-hint="98" class="header">
-    <div :class="['row', 'items-center', 'justify-between', 'q-px-sm']">
+    <div
+      :class="['header-back', 'row', 'items-center', 'justify-between', 'q-pa-sm']"
+      :style="backgroundStyle"
+    >
       <q-input
         ref="searchInput"
         v-model="searchTypedValue"
@@ -10,7 +13,14 @@
         outlined
         dense
         dark
-        class="col-6"
+        :class="[
+          { 'order-last full-width': screenGreaterThan.xs === false },
+          screenGreaterThan.xs === false ? 'q-mt-sm' : 'aq-my-sm',
+          'col-xs-grow',
+          'col-xs-shrink',
+          'col-sm-6',
+          'q-mr-sm',
+        ]"
         clearable
         @update:model-value="doSearch"
         @focus="searchHasFocus = true"
@@ -81,17 +91,57 @@
         </q-list>
       </q-menu>
       <q-select
-        v-model="filterModel"
-        :options="filterOptions[store.filterType]"
-        label="Filter"
+        v-if="screenGreaterThan.xs === false"
+        v-model="selectFilterModel"
+        :options="selectFilterOptions"
+        :label="selectFilterLabel"
         color="secondary"
         label-color="white"
-        :class="['q-my-sm', 'filter-select']"
+        :class="['filter-select']"
         dense
         dark
         outlined
-        @update:model-value="changeFilter"
-      />
+      >
+        <template #option="props">
+          <q-list>
+            <q-item-label v-if="props.opt.isFirst" header>{{ props.opt.filter }}</q-item-label>
+            <q-item clickable @click="handleMenuClick(props.opt, props.opt.filter)">
+              <span class="q-ml-md">{{ props.opt.label }}</span>
+            </q-item>
+          </q-list>
+        </template>
+      </q-select>
+      <q-btn-dropdown v-if="store.myInfo" flat no-caps dense :ripple="false" class="col-auto">
+        <template #label>
+          <!-- <q-avatar size="md">
+            <img :src="store.myInfo?.user.images.avatar.full" alt="" referrerpolicy="no-referrer" />
+          </q-avatar> -->
+          <span class="q-ml-sm">{{ store.myInfo.user.name }}</span>
+        </template>
+        <q-list class="bg-grey-10">
+          <q-item clickable v-close-popup @click="logout">
+            <q-item-section>
+              <q-item-label>Logout</q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="logout" color="white" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
+      <q-btn
+        v-else
+        class="login-button"
+        text-color="white"
+        outline
+        :ripple="false"
+        @click="goToLogin"
+      >
+        <q-avatar size="20px">
+          <img :src="traktIcon" alt="" />
+        </q-avatar>
+        <div class="q-pl-sm">Login</div>
+      </q-btn>
     </div>
   </q-header>
 </template>
@@ -100,6 +150,8 @@
 import { ref } from 'vue';
 import dayjs from 'dayjs';
 import * as fallbackPoster from '@/assets/fallback-tv.jpg';
+import * as traktIcon from '@/assets/trakt-icon-red.svg';
+import * as defaultImage from '@/assets/drawer-image-1.jpg';
 // store
 import { useStore } from '@/store/index';
 // api
@@ -117,13 +169,15 @@ export default {
     const store = useStore();
     return {
       store,
-      filterModel: ref(store.filter.label),
+      filterModel: ref(store.filter?.label),
       autocompleteApiResults: ref([]),
       selectModel: ref(null),
       searchHasFocus: ref(false),
       searchTypedValue: ref(null),
       menuVisible: ref(store.menuVisible),
       autocompleteTimer: ref(null),
+      traktIcon: traktIcon.default,
+      defaultBack: defaultImage.default,
     };
   },
   created() {
@@ -132,43 +186,68 @@ export default {
     });
   },
   computed: {
+    selectFilterModel() {
+      return this.store.filter.label ? this.store.filter.label : 'Make a selection';
+    },
+    selectFilterLabel() {
+      if (this.store.filter.label) {
+        return this.store.filterType === 'movie' ? 'Movies' : 'TV';
+      }
+      return 'Filter';
+    },
+    selectFilterOptions() {
+      const arrOptions = [];
+      Object.entries(this.store.filterOptions).forEach((filter) => {
+        filter[1].forEach((item, index) => {
+          const header = {};
+          header.filter = filter[0] === 'movie' ? 'Movies' : 'TV';
+          if (index === 0) header.isFirst = true;
+
+          if (!this.store.myInfo) {
+            if (!item.auth) arrOptions.push({ ...header, ...item });
+          } else {
+            arrOptions.push({ ...header, ...item });
+          }
+        });
+      });
+      return arrOptions;
+    },
     showMenu() {
       return this.searchHasFocus && this.menuVisible && this.autocompleteApiResults.length > 0;
     },
-    filterOptions() {
-      const options = {
-        movie: [
-          { label: 'Watch History', value: 'history' },
-          { label: 'My Recommended', value: 'recommended' },
-          { label: 'Trending', value: 'trending' },
-        ],
-        show: [
-          { label: 'Watch History', value: 'history' },
-          { label: 'My Recommended', value: 'recommended' },
-          { label: 'Trending', value: 'trending' },
-        ],
-      };
-
-      if (!localStorage.getItem('trakt-vue-user')) {
-        Object.entries(options).forEach((mType) => {
-          options[mType[0]] = mType[1].filter(
-            (item) => item.value !== 'history' && item.value !== 'recommended'
-          );
-        });
+    screenGreaterThan() {
+      return this.$q.screen.gt;
+    },
+    backgroundStyle() {
+      if (this.screenGreaterThan.xs === false) {
+        if (this.store.myInfo?.account.cover_image) {
+          return {
+            backgroundImage: `${this.backgroundGradient()} url(${
+              this.store.myInfo?.account.cover_image
+            }.webp)`,
+          };
+        }
+        return {
+          backgroundImage: `${this.backgroundGradient()} url(${this.defaultBack})`,
+        };
       }
-      return options;
+      return null;
     },
   },
   methods: {
+    handleMenuClick(item, filterType) {
+      this.store.updateLoading(false);
+      this.store.updateFilterType(filterType === 'Movies' ? 'movie' : 'show');
+      this.store.updatePage(1);
+      this.store.updateFilter({ label: item.label, value: item.value });
+      this.$router.push({
+        path: filterType === 'Movies' ? `/movie/${item.value}` : `/tv/${item.value}`,
+      });
+    },
     handleSearchBlur() {
       if (!document.activeElement.className.includes('autocomplete-item')) {
         this.searchHasFocus = false;
       }
-    },
-    changeFilter(value) {
-      this.store.updatePage(1);
-      this.store.updateFilter(value);
-      this.$router.push({ path: this.store.filterType === 'movie' ? '/movie' : '/tv' });
     },
     async doSearch(value) {
       this.store.updateMenuVisible(true);
@@ -228,6 +307,19 @@ export default {
         }
       }
     },
+    goToLogin() {
+      window.location =
+        'https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080';
+    },
+    logout() {
+      localStorage.clear();
+      this.$router.go('/');
+    },
+    backgroundGradient() {
+      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
+         linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
+         linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),`;
+    },
   },
 };
 </script>
@@ -238,20 +330,18 @@ export default {
 .header {
   background: transparent;
   padding: $space-sm;
-  padding-left: 0;
   & > div {
     @include background-style;
-    @media only screen and (max-width: $breakpoint-xs) {
-      padding-top: $space-sm;
-      & > label,
-      > .filter-select {
-        width: 100%;
-        max-width: 100%;
-      }
-    }
   }
-  & .filter-select {
-    min-width: 177px;
+  & .header-back {
+    background-size: cover;
+    background-position: center center;
+  }
+  & .login-button {
+    height: 40px;
+    &::before {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
   }
 }
 .scroll-area {

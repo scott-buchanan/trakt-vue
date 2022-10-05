@@ -2,9 +2,9 @@
   <q-scroll-area class="full-height full-width" :thumb-style="{ opacity: 0.5 }">
     <div class="row" v-if="data?.length > 0">
       <div
-        class="col-12 col-md-6 col-xl-4 show-card"
         v-for="item in data"
         :key="item[mType].ids.trakt"
+        :class="['show-card', 'col-12', 'col-md-6', 'col-xl-4']"
         @click="clickDetails(item)"
         @keyDown="clickDetails(item)"
       >
@@ -31,7 +31,6 @@
             <div v-if="item.my_rating">
               <q-avatar size="20px" class="q-mb-sm">
                 <q-img
-                  img-class="user-image"
                   :src="user?.images.avatar.full"
                   :alt="user?.name"
                   referrerpolicy="no-referrer"
@@ -57,9 +56,16 @@
             ]"
           >
             <div v-if="item.clear_logo" class="clearlogo">
-              <q-img no-spinner :src="item.clear_logo" fit="cover" alt="" />
+              <q-img
+                no-spinner
+                :ratio="2.58 / 1"
+                height="100%"
+                :src="item.clear_logo"
+                fit="cover"
+                alt=""
+              />
             </div>
-            <div v-else class="clearlogoNoImg flex items-center">
+            <div v-else class="clearlogo-no-img flex items-center">
               {{ item[mType].title }}
             </div>
             <div v-if="isEpisode" class="title q-pl-sm">
@@ -78,21 +84,27 @@
               </div>
             </div>
             <div v-else class="text-right">
-              <div>
-                <b>{{ item[mType].year }}</b>
-              </div>
               <span v-if="item.watchers" class="q-pr-sm">
-                <q-icon name="visibility" size="24px" />
                 {{ item.watchers }}
+                <q-icon name="visibility" size="24px" />
                 <q-tooltip :delay="500" :offset="[0, 5]">
                   {{ item.watchers }} people watching now
                 </q-tooltip>
               </span>
-              <span class="tags" v-for="genre in item.genres?.slice(0, 4)" :key="genre.id">
-                <q-badge color="secondary" class="text-dark">
-                  {{ genre.name }}
-                </q-badge>
+              <span>
+                <b>{{ item[mType].year }}</b>
               </span>
+              <div>
+                <span
+                  class="tags"
+                  v-for="genre in item.genres?.slice(0, $q.screen.gt.md === false ? 2 : 4)"
+                  :key="genre.id"
+                >
+                  <q-badge color="secondary" class="text-dark">
+                    {{ genre.name }}
+                  </q-badge>
+                </span>
+              </div>
             </div>
           </div>
         </q-img>
@@ -128,7 +140,7 @@ export default {
   },
   computed: {
     isEpisode() {
-      return this.store.filterType === 'show' && this.store.filter.value === 'history';
+      return this.store.filterType === 'show' && this.store.filter?.value === 'history';
     },
   },
   methods: {
@@ -158,14 +170,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/css/quasar.variables.scss';
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&display=swap');
+
 .show-card {
   cursor: pointer;
   position: relative;
-  & > img {
-    width: 100%;
-    display: block;
-  }
 }
 .caption > div::first-letter {
   text-transform: uppercase;
@@ -180,8 +190,9 @@ export default {
   width: 100px;
   min-width: 100px;
   height: 39px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
 }
-.clearlogoNoImg {
+.clearlogo-no-img {
   height: 39px;
 }
 .rating {

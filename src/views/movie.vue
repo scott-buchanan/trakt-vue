@@ -1,8 +1,8 @@
 <template>
-  <div :class="['full-height', 'tv-container']" v-if="loaded">
+  <div :class="['full-height', 'movie-container']" v-if="store.loaded">
     <CardContainer :data="data?.items" mType="movie" />
   </div>
-  <q-footer v-if="loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
+  <q-footer v-if="store.loaded && data?.pagesTotal > 1" :class="['text-white', 'footer']">
     <q-toolbar class="flex flex-center">
       <q-pagination
         v-model="page"
@@ -37,8 +37,7 @@ export default {
     const store = useStore();
     return {
       data: ref({}),
-      filter: ref(store.filter.value),
-      loaded: ref(false),
+      filter: ref(store.filter?.value),
       maxPages: ref(10),
       myMovieRatings: ref(null),
       page: ref(1),
@@ -49,12 +48,11 @@ export default {
   async created() {
     this.store.$subscribe((mutated, state) => {
       let loadData = false;
-      if (this.filter !== state.filter) {
+      if (state.filterType === 'movie' && state.filter !== this.filter) {
         loadData = true;
       }
 
       this.filter = state.filter;
-      this.loaded = state.loaded;
       this.tokens = state.tokens;
       this.page = state.page;
 
@@ -62,8 +60,12 @@ export default {
     });
 
     this.store.updateFilterType('movie');
+    if (this.$route.params?.filter) {
+      this.store.updateFilter(
+        this.store.filterOptions.movie.find((filter) => filter.value === this.$route.params.filter)
+      );
+    }
 
-    // we set tokens in beforeEach in router so loadData should never have missing tokens
     this.loadData();
 
     if (this.$route.query.page) {
@@ -82,16 +84,19 @@ export default {
       // this makes it so the card container always has a full last line
       localStorage.setItem('item-limit', this.screenGreaterThan.lg ? 21 : 20);
 
-      switch (this.store.filter.value) {
+      switch (this.store.filter?.value) {
         case 'history':
           this.data = await getWatchedHistory('movies', this.page);
           break;
         case 'recommended':
           this.data = await getRecommendationsFromMe('movies', this.page);
           break;
-        default:
-          // default to trending
+        case 'trending':
           this.data = await getTrending('movies', this.page);
+          break;
+        default:
+          this.store.updateLoading(true);
+          return;
       }
 
       // get movie ratings object from local storage
@@ -100,9 +105,9 @@ export default {
       // get images and ratings
       const items = await this.fetchCardInfo(this.myMovieRatings);
 
-      if (this.store.filter.value === 'history') {
+      if (this.store.filter?.value === 'history') {
         items.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at));
-      } else if (this.filter.value === 'trending') {
+      } else if (this.filter?.value === 'trending') {
         items.sort((a, b) => b.watchers - a.watchers);
       }
 
@@ -138,17 +143,16 @@ export default {
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
 
-.tv-container {
-  padding: 0 $space-sm $space-sm 0;
+.movie-container {
+  padding: 0 $space-sm $space-sm $space-sm;
   & > div {
     @include background-style;
     overflow: hidden;
   }
 }
 .footer {
-  padding: 0 $space-sm $space-sm 0;
+  padding: 0 $space-sm $space-sm $space-sm;
   background-color: transparent !important;
-  padding-left: 0;
   & > div {
     @include background-style;
   }

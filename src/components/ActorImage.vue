@@ -2,11 +2,11 @@
   <a v-if="actor.ids.imdb" :href="`https://imdb.com/name/${actor.ids.imdb}`" target="blank">
     <q-img
       :ratio="1.5 / 1"
-      :class="['actor-image', small ? 'small' : '', 'q-mt-sm']"
+      :class="['actor-image', { small: small }]"
       :src="actor.profile_path ? actor.profile_path : noActorImage"
       :alt="actor.name"
     >
-      <div :class="['actor-image-text', small ? 'small' : '', 'absolute-bottom']">
+      <div :class="['actor-image-text', { small: small }, 'absolute-bottom']">
         <strong>{{ actor.name }}</strong>
         <br />
         as {{ actor.character }}
@@ -16,11 +16,11 @@
   <q-img
     v-else
     :ratio="1.5 / 1"
-    :class="['actor-image', small ? 'small' : '', 'q-mt-sm']"
-    :src="actor.profile_path"
+    :class="['actor-image', { small: small }]"
+    :src="actor.profile_path ? actor.profile_path : noActorImage"
     :alt="actor.name"
   >
-    <div :class="['actor-image-text', small ? 'small' : '', 'absolute-bottom']">
+    <div :class="['actor-image-text', { small: small }, 'absolute-bottom']">
       <strong>{{ actor.name }}</strong>
       <br />
       as {{ actor.character }}

@@ -183,21 +183,24 @@ export async function getSeasonDetails(slug, season) {
   const showInfo = await getShowSummary(slug);
   const summary = { show: { ids: showInfo.ids } };
   summary.type = 'season';
-  summary.season = season;
   summary.title = showInfo.title;
+  summary.show.season = season;
+  summary.show.type = 'season';
 
   const seasonInfo = await getSeasonSummary(slug, parseInt(season, 10));
   seasonInfo.trakt_rating = seasonInfo.rating.toFixed(1);
 
-  await Promise.all([
+  [res.backdrop, res.clear_logo, res.tmdb_data, res.reviews] = await Promise.all([
     getShowBackdrop(summary.show),
     getShowClearLogo(summary.show.ids.tvdb),
     tmdbShowSeasonDetails(summary.show, season),
-    getComments(seasonInfo),
-  ]).then((results) => {
-    [res.backdrop, res.clear_logo, res.tmdb_data, res.reviews] = results;
+    getComments(summary.show),
+  ]);
+  if (!res.tmdb_data.poster_path) {
+    res.poster = await getShowPoster(summary.show);
+  } else {
     res.poster = `https://image.tmdb.org/t/p/w780${res.tmdb_data.poster_path}`;
-  });
+  }
 
   if (localStorage.getItem('trakt-vue-user')) {
     // get my rating from ratings in local storage

@@ -9,7 +9,7 @@ export async function getAppBackgroundImg() {
     url: 'https://api.themoviedb.org/3/trending/all/day?api_key=89c6bd3331244e97eed61741fc798ab5',
   });
   const rando = Math.floor(Math.random() * response.data.results.length);
-  return `https://image.tmdb.org/t/p/original/${response.data.results[rando].backdrop_path}`;
+  return `https://image.tmdb.org/t/p/original${response.data.results[rando].backdrop_path}`;
 }
 
 export async function getShowPoster(show) {
@@ -72,10 +72,11 @@ export async function getShowBackdrop(show) {
   try {
     const response = await axios({
       method: 'GET',
-      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
+      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/images?api_key=89c6bd3331244e97eed61741fc798ab5&include_image_language=null`,
     });
     if (response.data.backdrops.length < 1) {
       const fanartBackground = await getTvBackground(show.ids.tvdb);
+      if (!fanartBackground) throw new Error('no images found');
       return {
         backdrop_sm: fanartBackground,
         backdrop_lg: fanartBackground,
@@ -84,10 +85,10 @@ export async function getShowBackdrop(show) {
     response.data.backdrops.sort((a, b) => b.vote_average - a.vote_average || b.height - a.height);
     return {
       backdrop_sm: `https://image.tmdb.org/t/p/w780${response.data.backdrops[0].file_path}`,
-      backdrop_lg: `https://image.tmdb.org/t/p/original${response.data.backdrops[0].file_path}`,
+      backdrop_lg: `https://image.tmdb.org/t/p/w1280${response.data.backdrops[0].file_path}`,
     };
   } catch {
-    return { sm: fallback.default, lg: fallback.default };
+    return { backdrop_sm: fallback.default, backdrop_lg: fallback.default };
   }
 }
 
@@ -95,14 +96,14 @@ export async function getEpisodeBackdrop(show, episode) {
   try {
     const response = await axios({
       method: 'GET',
-      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/season/${episode.season}/episode/${episode.number}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
+      url: `https://api.themoviedb.org/3/tv/${show.ids.tmdb}/season/${episode.season}/episode/${episode.number}/images?api_key=89c6bd3331244e97eed61741fc798ab5&include_image_language=null`,
     });
     if (response.data.stills.length < 1) {
       return await getShowBackdrop(show);
     }
     return {
       backdrop_sm: `https://image.tmdb.org/t/p/w780${response.data.stills[0].file_path}`,
-      backdrop_lg: `https://image.tmdb.org/t/p/original${response.data.stills[0].file_path}`,
+      backdrop_lg: `https://image.tmdb.org/t/p/w1280${response.data.stills[0].file_path}`,
     };
   } catch {
     return getShowBackdrop(show);
@@ -119,7 +120,7 @@ export async function getMovieBackdrop(movie) {
   try {
     const response = await axios({
       method: 'GET',
-      url: `https://api.themoviedb.org/3/movie/${movie.ids.tmdb}/images?api_key=89c6bd3331244e97eed61741fc798ab5`,
+      url: `https://api.themoviedb.org/3/movie/${movie.ids.tmdb}/images?api_key=89c6bd3331244e97eed61741fc798ab5&include_image_language=null`,
     });
     if (response.data.backdrops.length < 1) {
       const fanartBackground = await getMovieBackground(movie.ids.tvdb);
@@ -130,7 +131,7 @@ export async function getMovieBackdrop(movie) {
     }
     return {
       backdrop_sm: `https://image.tmdb.org/t/p/w780${response.data.backdrops[0].file_path}`,
-      backdrop_lg: `https://image.tmdb.org/t/p/original${response.data.backdrops[0].file_path}`,
+      backdrop_lg: `https://image.tmdb.org/t/p/w1280${response.data.backdrops[0].file_path}`,
     };
   } catch {
     return { sm: fallback.default, lg: fallback.default };
@@ -157,14 +158,28 @@ export async function tmdbShowDetails(show) {
     });
     const { data } = response;
     const seasons = [];
-    data.seasons.forEach((season) => {
-      if (season.episode_count > 0) {
-        const path = `https://image.tmdb.org/t/p/w200${season.poster_path}`;
-        seasons.push({ ...season, ...{ poster_path: path } });
-      }
-    });
+    await Promise.all(
+      data.seasons.map(async (season) => {
+        if (season.episode_count > 0) {
+          let path;
+          if (!season.poster_path) {
+            path = await getShowPoster(show);
+          } else {
+            path = `https://image.tmdb.org/t/p/w200${season.poster_path}`;
+          }
+          seasons.push({ ...season, ...{ poster_path: path } });
+        }
+      })
+    );
     data.seasons = seasons;
-    return response.data;
+    data.seasons.sort((a, b) => a.season_number - b.season_number);
+
+    if (data.seasons[0].name.toLowerCase() === 'specials') {
+      const specials = data.seasons.shift();
+      data.seasons.push(specials);
+    }
+
+    return data;
   } catch {
     return null;
   }

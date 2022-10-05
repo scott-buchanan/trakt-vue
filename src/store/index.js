@@ -7,7 +7,19 @@ export const useStore = defineStore('main', {
   state: () => ({
     data: null,
     page: 1,
-    filter: { label: 'Trending', value: 'trending' },
+    filter: { label: null, value: null, auth: null },
+    filterOptions: {
+      show: [
+        { label: 'Trending', value: 'trending', auth: false },
+        { label: 'Watch History', value: 'history', auth: true },
+        { label: 'My Recommended', value: 'recommended', auth: true },
+      ],
+      movie: [
+        { label: 'Trending', value: 'trending', auth: false },
+        { label: 'Watch History', value: 'history', auth: true },
+        { label: 'My Recommended', value: 'recommended', auth: true },
+      ],
+    },
     filterType: null,
     loaded: false,
     tokens: null,

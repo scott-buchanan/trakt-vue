@@ -15,47 +15,60 @@ import {
 const routes = [
   {
     path: '/',
-    redirect: '/tv',
+    redirect: `/tv/trending`,
   },
   {
     path: '/tv',
     name: 'tv',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/tv.vue'),
-  },
-  {
-    path: '/movie',
-    name: 'movie',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/movie.vue'),
-  },
-  {
-    path: '/tv/:show/season/:season/episode/:episode',
-    name: 'episode-details',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/episode-details.vue'),
-  },
-  {
-    path: '/tv/:show/season/:season',
-    name: 'season-details',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/season-details.vue'),
+    redirect: `/tv/trending`,
+    component: () => import(/* webpackChunkName: "tv" */ '../views/tv.vue'),
   },
   {
     path: '/tv/:show',
     name: 'show-details',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/show-details.vue'),
+    component: () => import(/* webpackChunkName: "show-details" */ '../views/show-details.vue'),
+  },
+  {
+    path: '/tv/:filter',
+    name: 'show-list',
+    component: () => import(/* webpackChunkName: "show-list" */ '../views/tv.vue'),
+  },
+  {
+    path: '/tv/:show/season/:season/episode/:episode',
+    name: 'episode-details',
+    component: () =>
+      import(/* webpackChunkName: "episode-details" */ '../views/episode-details.vue'),
+  },
+  {
+    path: '/tv/:show/season/:season',
+    name: 'season-details',
+    component: () => import(/* webpackChunkName: "season-details" */ '../views/season-details.vue'),
+  },
+  {
+    path: '/movie',
+    name: 'movie',
+    redirect: '/movie/trending',
+    component: () => import(/* webpackChunkName: "movie" */ '../views/movie.vue'),
   },
   {
     path: '/movie/:movie',
     name: 'movie-details',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/movie-details.vue'),
+    component: () => import(/* webpackChunkName: "movie-details" */ '../views/movie-details.vue'),
+  },
+  {
+    path: '/movie/:filter',
+    name: 'movie-list',
+    component: () => import(/* webpackChunkName: "movie-list" */ '../views/movie.vue'),
   },
   {
     path: '/search',
     name: 'search',
-    component: () => import(/* webpackChunkName: "TV" */ '../views/search.vue'),
+    component: () => import(/* webpackChunkName: "search" */ '../views/search.vue'),
   },
   {
     // 404
     path: '/:pathMatch(.*)*',
-    redirect: '/',
+    redirect: '/tv',
   },
 ];
 
@@ -67,103 +80,108 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const store = useStore();
   const urlParams = new URLSearchParams(window.location.search);
-  let authTokens;
 
-  if (localStorage.getItem('trakt-vue-token')) {
-    // if local storage has tokens, get the accessToken from the refreshToken
-    const tokens = JSON.parse(localStorage.getItem('trakt-vue-token'));
-    authTokens = await getTokenFromRefresh(tokens.refreshToken, to.path);
-    localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
-    store.updateTokens(authTokens);
+  // redirect if needed
+  const filterType = to.path.includes('/tv/') ? 'show' : 'movie';
+  const urlLastPart = to.path.split('/')[to.path.split('/').length - 1];
+  const isFilter =
+    store.filterOptions[filterType].find((filter) => filter.value === urlLastPart) !== undefined;
+  if ((to.name === 'show-details' || to.name === 'movie-details') && isFilter) {
+    next({ name: `${filterType}-list`, params: { filter: urlLastPart } });
+    return;
+  }
+  // ------------------
 
-    const myInfo = await getTraktSettings(authTokens.accessToken);
-    store.updateMyInfo(myInfo);
+  const checkToken = async () => {
+    if (localStorage.getItem('trakt-vue-token')) {
+      // if local storage has tokens, get the accessToken from the refreshToken
+      const tokens = JSON.parse(localStorage.getItem('trakt-vue-token'));
+      const storedLikes = JSON.parse(localStorage.getItem('trakt-vue-likes'));
+      let myInfo = JSON.parse(localStorage.getItem('trakt-vue-user'));
+      let myShowRatings = [];
+      let mySeasonRatings = [];
+      let myEpRatings = [];
+      let myMovieRatings = [];
+      let myLikes = [];
+      let myWatchedMovies = [];
 
-    // get show ratings
-    const myShowRatings = await getMyShowRatings(1);
-    const storedEpRatings = JSON.parse(localStorage.getItem('trakt-vue-show-ratings'));
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-show-ratings', JSON.stringify(myShowRatings));
-    if (storedEpRatings?.lastModified !== myShowRatings.lastModified) {
-      // only get the big rating object if new ratings have been added
-      getMyShowRatings().then((remainingRatings) => {
-        const total = { ...myShowRatings, ...remainingRatings };
-        localStorage.setItem('trakt-vue-show-ratings', JSON.stringify(total));
-      });
-    }
+      const getRatings = (item, initialCallRatings, ratingFunction) => {
+        // get show ratings
+        const storedRatings = JSON.parse(localStorage.getItem(`trakt-vue-${item}-ratings`));
+        if (!storedRatings) {
+          // set to localStorage here to eliminate delay
+          localStorage.setItem(`trakt-vue-${item}-ratings`, JSON.stringify(initialCallRatings));
+        }
+        if (
+          initialCallRatings.total > initialCallRatings.length ||
+          storedRatings?.lastModified !== initialCallRatings.lastModified
+        ) {
+          // only get the big rating object if new ratings have been added
+          ratingFunction().then((remainingRatings) => {
+            localStorage.setItem(`trakt-vue-${item}-ratings`, JSON.stringify(remainingRatings));
+          });
+        }
+      };
 
-    // get season ratings
-    const mySeasonRatings = await getMySeasonRatings(1);
-    const storedSeasonRatings = JSON.parse(localStorage.getItem('trakt-vue-season-ratings'));
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-season-ratings', JSON.stringify(mySeasonRatings));
-    if (storedSeasonRatings?.lastModified !== mySeasonRatings.lastModified) {
-      // only get the big rating object if new ratings have been added
-      getMySeasonRatings().then((remainingRatings) => {
-        const total = { ...mySeasonRatings, ...remainingRatings };
-        localStorage.setItem('trakt-vue-season-ratings', JSON.stringify(total));
-      });
-    }
+      if (tokens.expires_in < 86400) {
+        const authTokens = await getTokenFromRefresh(tokens.refresh_token, to.path);
+        localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
+        store.updateTokens(authTokens);
+      }
 
-    // get episode ratings
-    const myEpRatings = await getMyEpisodeRatings(1);
-    const storedShowRatings = JSON.parse(localStorage.getItem('trakt-vue-episode-ratings'));
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-episode-ratings', JSON.stringify(myEpRatings));
-    if (storedShowRatings?.lastModified !== myEpRatings.lastModified) {
-      // getting the big rating object if ratings have changed
-      getMyEpisodeRatings().then((remainingRatings) => {
-        const total = { ...myEpRatings, ...remainingRatings };
-        localStorage.setItem('trakt-vue-episode-ratings', JSON.stringify(total));
-      });
-    }
+      if (!myInfo) {
+        myInfo = await getTraktSettings(tokens.access_token);
+      }
+      store.updateMyInfo(myInfo);
 
-    // get movie ratings
-    const myMovieRatings = await getMyMovieRatings(1);
-    const storedMovieRatings = JSON.parse(localStorage.getItem('trakt-vue-movie-ratings'));
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-movie-ratings', JSON.stringify(myMovieRatings));
-    if (storedMovieRatings?.lastModified !== myMovieRatings.lastModified) {
-      // getting the big rating object if ratings have changed
-      getMyMovieRatings().then((remainingRatings) => {
-        const total = { ...myMovieRatings, ...remainingRatings };
-        localStorage.setItem('trakt-vue-movie-ratings', JSON.stringify(total));
-      });
-    }
-
-    // get likes
-    const myLikes = await getMyLikes(1);
-    const storedLikes = JSON.parse(localStorage.getItem('trakt-vue-likes'));
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
-    // need to add this check because this call needs token
-    if (storedLikes && storedLikes[0] !== myLikes[0]) {
-      if (storedLikes.length > 99) {
-        getMyLikes().then((remainingLikes) => {
-          const total = { ...myLikes, ...remainingLikes };
-          localStorage.setItem('trakt-vue-likes', JSON.stringify(total));
-        });
+      if (to.path.split('/')[1] === 'movie') {
+        [myMovieRatings, myLikes, myWatchedMovies] = await Promise.all([
+          getMyMovieRatings(1),
+          getMyLikes(1),
+          getMyWatchedMovies(),
+        ]);
+        getRatings('movie', myMovieRatings, getMyMovieRatings);
+        // set watched movies
+        localStorage.setItem('trakt-vue-watched-movies', JSON.stringify(myWatchedMovies));
       } else {
-        localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
+        [myShowRatings, mySeasonRatings, myEpRatings, myLikes] = await Promise.all([
+          getMyShowRatings(1),
+          getMySeasonRatings(1),
+          getMyEpisodeRatings(1),
+          getMyLikes(1),
+        ]);
+        getRatings('show', myShowRatings, getMyShowRatings);
+        getRatings('season', mySeasonRatings, getMySeasonRatings);
+        getRatings('episode', myEpRatings, getMyEpisodeRatings);
+      }
+
+      // set to localStorage here to eliminate delay
+      localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
+      // need to add this check because this call needs token
+      if (storedLikes && storedLikes[0] !== myLikes[0]) {
+        if (storedLikes.length > 99) {
+          getMyLikes().then((remainingLikes) => {
+            const total = { ...myLikes, ...remainingLikes };
+            localStorage.setItem('trakt-vue-likes', JSON.stringify(total));
+          });
+        } else {
+          localStorage.setItem('trakt-vue-likes', JSON.stringify(myLikes));
+        }
       }
     }
+    // next();
+  };
 
-    // get movie watched
-    const myWatched = await getMyWatchedMovies();
-    // set to localStorage here to eliminate delay
-    localStorage.setItem('trakt-vue-watched-movies', JSON.stringify(myWatched));
-  } else if (urlParams.get('code')) {
+  checkToken();
+
+  if (urlParams.get('code')) {
     // if no tokens were present and we fell into the else, we get redirected
     // with query: code and put tokens into local storage
-    authTokens = await getToken(urlParams.get('code'));
+    const authTokens = await getToken(urlParams.get('code'));
     localStorage.setItem('trakt-vue-token', JSON.stringify(authTokens));
     store.updateTokens(authTokens);
-    next({ name: to.name, query: null });
+    checkToken();
   }
-  // else {
-  //   window.location = // eslint-disable-line
-  //     'https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080';
-  // }
 
   next();
 });

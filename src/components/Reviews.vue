@@ -1,7 +1,7 @@
 <template>
   <q-timeline v-if="reviews?.length > 0" color="secondary" dark>
     <div v-if="reply === false" class="flex items-start justify-between no-wrap">
-      <q-timeline-entry heading class="review-heading" tag="h2">
+      <q-timeline-entry heading tag="h2">
         User Reviews
         <sup>
           <q-badge color="secondary" class="text-dark"> {{ reviewCount }} </q-badge>
@@ -247,6 +247,11 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
+
+// needed to override timeline heading
+:deep(h2) {
+  @include heading-reset;
+}
 sup {
   font-weight: 400;
   font-size: 0.6em;

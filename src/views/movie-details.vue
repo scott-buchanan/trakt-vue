@@ -8,7 +8,16 @@
     :technicalDetails="arrDetails"
     :linkIds="info.ids"
     mType="movie"
-  />
+  >
+    <template #movie-collection>
+      <MovieCollection
+        v-if="info.tmdb_data.belongs_to_collection?.id"
+        :movie="info"
+        :collectionId="info.tmdb_data.belongs_to_collection?.id"
+        class="q-mt-lg"
+      />
+    </template>
+  </DetailsTemplate>
 </template>
 
 <script>
@@ -20,9 +29,10 @@ import { useStore } from '@/store/index';
 import { getMovieDetails } from '@/api/combinedCalls';
 // components
 import DetailsTemplate from '@/components/DetailsTemplate.vue';
+import MovieCollection from '@/components/MovieCollection.vue';
 
 export default {
-  components: { DetailsTemplate },
+  components: { DetailsTemplate, MovieCollection },
   name: 'tv',
   setup() {
     const store = useStore();

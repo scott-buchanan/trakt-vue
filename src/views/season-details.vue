@@ -8,8 +8,30 @@
     :technicalDetails="arrDetails"
     :linkIds="info.show.ids"
     mType="season"
-    @episodeClick="handleEpisodeClick"
-  />
+  >
+    <template #season-episode-list>
+      <div class="q-mt-lg">
+        <h1>
+          {{ info.tmdb_data?.episodes.length }} Episodes
+          <small v-if="unairedEpisodes > 0"> ({{ unairedEpisodes }} unaired episodes) </small>
+        </h1>
+        <ItemCardContainer oneRowLonger>
+          <ItemCard
+            episode
+            v-for="episode in info.tmdb_data?.episodes"
+            :key="episode.name"
+            v-show="isBeforeToday(episode.air_date)"
+            :title="episodeTitle(episode)"
+            :poster="episode.backdrop.backdrop_sm"
+            :overview="episode.overview"
+            :aired="episode.air_date"
+            :backdrop="episode.backdrop.backdrop_lg"
+            @click="handleEpisodeClick(episode)"
+          />
+        </ItemCardContainer>
+      </div>
+    </template>
+  </DetailsTemplate>
 </template>
 
 <script>
@@ -21,16 +43,17 @@ import { useStore } from '@/store/index';
 import { getSeasonDetails } from '@/api/combinedCalls';
 // components
 import DetailsTemplate from '@/components/DetailsTemplate.vue';
+import ItemCard from '@/components/ItemCard.vue';
+import ItemCardContainer from '@/components/ItemCardContainer.vue';
 
 export default {
-  components: { DetailsTemplate },
+  components: { DetailsTemplate, ItemCardContainer, ItemCard },
   name: 'seasonDetails',
   setup() {
     const store = useStore();
     return {
       arrDetails: ref([]),
       loaded: ref(false),
-      // watchedProgress: ref(0),
       store,
     };
   },
@@ -47,6 +70,13 @@ export default {
     this.store.updateLoading(true);
   },
   computed: {
+    unairedEpisodes() {
+      let count = 0;
+      this.info.tmdb_data?.episodes.forEach((episode) => {
+        if (new Date(episode.air_date) > new Date()) count += 1;
+      });
+      return count;
+    },
     detailsBackground() {
       return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
               linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
@@ -58,6 +88,14 @@ export default {
     },
   },
   methods: {
+    episodeTitle(episode) {
+      return `${episode.season_number}x${episode.episode_number.toString().padStart(2, 0)} ${
+        episode.name
+      }`;
+    },
+    isBeforeToday(episodeDate) {
+      return new Date(episodeDate) < new Date();
+    },
     async getData() {
       this.store.updateLoading(false);
 
@@ -91,65 +129,5 @@ export default {
 
 h1 {
   font-weight: 400;
-}
-.background {
-  background-size: cover;
-  background-position: center;
-  background-color: transparent;
-  height: 100%;
-  border-radius: 5px;
-  overflow: hidden;
-  & .show-logo {
-    width: 100%;
-    max-width: 250px;
-    height: 97px;
-  }
-}
-.details-container {
-  padding: 0 $space-sm $space-sm 0;
-  display: flex;
-  height: 100%;
-  & > div:first-child {
-    flex: 1;
-  }
-}
-.poster {
-  width: 50%;
-  min-width: 200px;
-  max-width: 400px;
-  & > div {
-    border-radius: 5px;
-    overflow: hidden;
-  }
-}
-.ratings {
-  display: flex;
-  & > div {
-    display: flex;
-    align-items: center;
-  }
-  & > div > img {
-    width: 35px;
-  }
-  & > div > div:nth-child(2) {
-    font-size: 24px;
-    margin: 0 10px 0 10px;
-  }
-}
-.certification {
-  border: 1px solid $secondary;
-  color: $secondary;
-  border-radius: 3px;
-  padding: 3px 5px;
-  font-size: 0.75em;
-}
-.show-info {
-  flex-wrap: wrap;
-  & > div {
-    margin-right: $space-md;
-  }
-  & span {
-    @include darkText;
-  }
 }
 </style>

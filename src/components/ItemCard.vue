@@ -1,97 +1,101 @@
 <template>
-  <button :class="['text-left']" @click="handleClick">
+  <button :class="['text-left']" @click="$emit('click')">
     <div
       class="card"
       :style="{
-        backgroundImage: `${backgroundGradient()} url(https://image.tmdb.org/t/p/w1280/${backdrop})`,
+        backgroundImage: `${backgroundGradient()} ${
+          backdrop ? `url(https://image.tmdb.org/t/p/w1280/${props.backdrop})` : ''
+        }`,
       }"
     >
       <div class="card-image" v-if="screenGreaterThan.sm">
         <q-img
-          v-if="poster"
+          v-if="props.poster"
           height="100%"
-          :width="episode ? '250px' : '133px'"
-          :ratio="episode ? 16 / 9 : 1 / 1.5"
-          :src="`https://image.tmdb.org/t/p/w500/${poster}`"
+          :width="props.episode ? '250px' : '133px'"
+          :ratio="props.episode ? 16 / 9 : 1 / 1.5"
+          :src="`https://image.tmdb.org/t/p/w500/${props.poster}`"
           :alt="title"
         />
         <q-img
           v-else
-          :width="episode ? '250px' : '133px'"
-          :ratio="episode ? 16 / 9 : 1 / 1.5"
+          :width="props.episode ? '250px' : '133px'"
+          :ratio="props.episode ? 16 / 9 : 1 / 1.5"
           :src="fallbackImage"
           alt="generic poster"
         />
       </div>
       <div class="q-pa-md no-wrap card-content">
-        <h1 class="title">{{ title }}</h1>
-        <h2 v-if="mediaType && !episode">{{ mediaType === 'tv' ? 'TV Show' : 'Movie' }}</h2>
+        <h1 class="title">{{ props.title }}</h1>
+        <h2 v-if="props.mediaType && !props.episode">
+          {{ props.mediaType === 'tv' ? 'TV Show' : 'Movie' }}
+        </h2>
+        <p v-if="props.aired">
+          {{ formattedDate(props.aired) }}
+          <span v-if="props.episode">
+            - <i>{{ props.mediaLength }}</i>
+          </span>
+        </p>
         <p :class="['q-mb-none', 'truncate-text']">
-          {{ overview }}
+          {{ props.overview }}
         </p>
       </div>
     </div>
   </button>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue';
+import { useQuasar } from 'quasar';
 import * as fallBackImg from '@/assets/fallback-tv.jpg';
+import dayjs from 'dayjs';
 
-export default {
-  name: 'ItemCard',
-  props: {
-    title: {
-      type: String,
-      required: true,
-    },
-    poster: {
-      type: String,
-      default: null,
-    },
-    backdrop: {
-      type: String,
-      required: true,
-    },
-    mediaType: {
-      type: String,
-      required: false,
-      default: 'tv',
-    },
-    overview: {
-      type: String,
-      required: true,
-    },
-    episode: {
-      type: Boolean,
-      default: false,
-    },
+const $q = useQuasar();
+const props = defineProps({
+  title: {
+    type: String,
+    required: true,
   },
-  setup() {
-    return {
-      fallbackImage: fallBackImg.default,
-    };
+  poster: {
+    type: String,
+    default: null,
   },
-  computed: {
-    screenGreaterThan() {
-      return this.$q.screen.gt;
-    },
+  backdrop: {
+    type: String,
+    default: null,
   },
-  methods: {
-    handleClick() {
-      this.$emit('click');
-    },
-    backgroundGradient() {
-      return `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
+  mediaType: {
+    type: String,
+    required: false,
+    default: 'tv',
+  },
+  overview: {
+    type: String,
+    required: true,
+  },
+  aired: {
+    type: String,
+    default: null,
+  },
+  episode: {
+    type: Boolean,
+    default: false,
+  },
+});
+// data
+const fallbackImage = fallBackImg.default;
+// computed
+const screenGreaterThan = computed(() => $q.screen.gt);
+// methods
+const formattedDate = (wDate) => dayjs(wDate).format('MMM DD, YYYY');
+const backgroundGradient =
+  () => `linear-gradient(to top right, rgba(0,0,0,.8), rgba(0,0,0,.5) 70%, rgba(0,0,0,.3)),
          linear-gradient(to top      , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
          linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),`;
-    },
-  },
-};
 </script>
 
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
-@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&display=swap');
 
 h2 {
   font-size: 20px;

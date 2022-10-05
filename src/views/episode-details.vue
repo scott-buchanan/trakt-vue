@@ -1,6 +1,6 @@
 <template>
   <DetailsTemplate
-    v-if="loaded"
+    v-if="store.loaded"
     :title="info.show.title"
     :subTitle="episodeTitle"
     :info="info"
@@ -29,24 +29,19 @@ export default {
     return {
       info: ref({}),
       arrDetails: ref([]),
-      loaded: ref(false),
       store,
     };
   },
   async created() {
-    this.store.$subscribe((mutated, state) => {
-      this.loaded = state.loaded;
-    });
-
     this.store.updateLoading(false);
     this.store.updateFilterType('show');
+    this.store.updateFilter(null);
 
     this.info = await getEpisodeDetails(
       this.$route.params.show,
       this.$route.params.season,
       this.$route.params.episode
     );
-
     this.arrDetails = [
       { label: 'runtime', value: `${this.info.runtime} minutes` },
       { label: 'aired', value: this.formattedDate(this.info.first_aired) },

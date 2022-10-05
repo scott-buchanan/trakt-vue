@@ -1,5 +1,5 @@
 <template>
-  <div class="full-height">
+  <div class="full-height q-pl-sm">
     <div class="details-container">
       <q-scroll-area
         :class="['background', 'text-white']"
@@ -49,35 +49,37 @@
                 />
               </div>
               <!-- TITLES -->
-              <div :class="['titles', 'full-width']">
-                <router-link
-                  v-if="mType === 'episode' || mType === 'season'"
-                  :to="{
-                    name: 'show-details',
-                    params: { show: info.show.ids.slug },
-                  }"
-                >
-                  <q-img
-                    role="heading"
-                    aria-level="1"
-                    v-if="info.clear_logo && screenGreaterThan.xs"
-                    class="show-logo"
-                    :src="info.clear_logo"
-                    :alt="title"
-                  />
-                  <h1 v-else>{{ title }}</h1>
-                </router-link>
-                <template v-else>
-                  <q-img
-                    role="heading"
-                    aria-level="1"
-                    v-if="info.clear_logo && screenGreaterThan.xs"
-                    class="show-logo"
-                    :src="info.clear_logo"
-                    :alt="title"
-                  />
-                  <h1 v-else>{{ title }}</h1>
-                </template>
+              <div :class="['break', 'full-width']">
+                <div class="q-mb-md">
+                  <router-link
+                    v-if="mType === 'episode' || mType === 'season'"
+                    :to="{
+                      name: 'show-details',
+                      params: { show: info.show.ids.slug },
+                    }"
+                  >
+                    <q-img
+                      role="heading"
+                      aria-level="1"
+                      v-if="info.clear_logo && screenGreaterThan.xs"
+                      class="clear-logo"
+                      :src="info.clear_logo"
+                      :alt="title"
+                    />
+                    <h1 v-else>{{ title }}</h1>
+                  </router-link>
+                  <template v-else>
+                    <q-img
+                      role="heading"
+                      aria-level="1"
+                      v-if="info.clear_logo && screenGreaterThan.xs"
+                      class="clear-logo"
+                      :src="info.clear_logo"
+                      :alt="title"
+                    />
+                    <h1 v-else>{{ title }}</h1>
+                  </template>
+                </div>
                 <div v-if="subTitle" :class="['sub-title', 'q-mt-sm']">
                   <div :class="['q-mb-md', 'q-mr-sm']">
                     {{ subTitle }}
@@ -97,19 +99,8 @@
                   </span>
                 </div>
                 <div :class="['flex', 'q-mb-md']">
-                  <!-- WATCHED INFO -->
-                  <div v-if="info.watched_progress?.last_watched_at" :class="['flex', 'info']">
-                    <div>
-                      <span>last watched:&nbsp;</span>
-                      {{ formattedDateTime(info.watched_progress.last_watched_at) }}
-                    </div>
-                    <div v-if="info.watched_progress?.type === 'movie'">
-                      <span>plays:&nbsp;</span>
-                      {{ info.watched_progress.plays }}
-                    </div>
-                  </div>
                   <!-- LINKS -->
-                  <div class="info">
+                  <div class="info q-mr-md">
                     <span>Links: </span>
                     <template v-for="(value, key) in linkIds" :key="key">
                       <template v-if="links[key]">
@@ -121,13 +112,24 @@
                       </template>
                     </template>
                   </div>
+                  <!-- WATCHED INFO -->
+                  <div v-if="info.watched_progress?.last_watched_at" :class="['flex', 'info']">
+                    <div>
+                      <span>last watched:&nbsp;</span>
+                      {{ formattedDateTime(info.watched_progress.last_watched_at) }}
+                    </div>
+                    <div v-if="info.watched_progress?.type === 'movie'">
+                      <span>plays:&nbsp;</span>
+                      {{ info.watched_progress.plays }}
+                    </div>
+                  </div>
                 </div>
-                <div :class="['flex', 'no-wrap', 'q-mb-md']">
+                <div :class="['flex', 'no-wrap', 'q-mb-lg']">
                   <div :class="['flex', 'info']">
                     <!-- TECHNICAL DETAILS -->
                     <div
                       class="technical-details"
-                      v-for="item in technicalDetails"
+                      v-for="item in technicalDetailsFiltered"
                       :key="item.value"
                     >
                       <template v-if="item.label !== 'production companies' && item.value">
@@ -183,8 +185,8 @@
                       <div>{{ info.tmdb_rating }}</div>
                     </div>
                   </div>
-                  <div class="flex q-mb-sm">
-                    <div class="q-mr-sm">
+                  <div class="flex q-mb-lg">
+                    <div v-if="user" class="q-mr-sm">
                       <Rating :item="info" :rating="info.my_rating" />
                     </div>
                     <div v-if="info.trailer">
@@ -199,95 +201,24 @@
                   </div>
                 </div>
                 <!-- OVERVIEW -->
-                <p v-if="info.tmdb_data.overview" class="q-mb-lg">{{ info.tmdb_data.overview }}</p>
+                <p class="q-mb-none" v-if="info.tmdb_data.overview">
+                  {{ info.tmdb_data.overview }}
+                </p>
               </div>
             </div>
             <div>
               <!-- MOVIE COLLECTION -->
-              <MovieCollection
-                v-if="info.type === 'movie' && info.tmdb_data.belongs_to_collection?.id"
-                :movie="info"
-                :collectionId="info.tmdb_data.belongs_to_collection?.id"
-                class="q-mb-lg"
-              />
+              <slot name="movie-collection" />
               <!-- SHOW SEASONS -->
-              <div v-if="mType === 'show'">
-                <h2>
-                  {{ seasonLength }}
-                  {{ seasonLength > 1 ? 'Seasons' : 'Season' }}
-                </h2>
-                <div class="seasons">
-                  <div v-for="(season, index) in seasons" :key="season.id">
-                    <router-link
-                      class="relative-position"
-                      :to="{
-                        name: 'season-details',
-                        params: { show: $route.params.show, season: season.season_number },
-                      }"
-                    >
-                      <q-img
-                        width="150px"
-                        :ratio="1 / 1.5"
-                        :src="season.poster_path"
-                        :alt="season.name"
-                      >
-                        <div
-                          v-if="user && season.name.toLowerCase() !== 'specials'"
-                          class="season-watched"
-                        >
-                          <q-knob
-                            readonly
-                            :max="1"
-                            :model-value="seasons[index]?.watched_progress"
-                            show-value
-                            size="30px"
-                            :thickness="0.2"
-                            color="secondary"
-                            track-color="grey-9"
-                            class="text-white"
-                          >
-                            <q-icon name="check_circle_outline" size="xs" color="positive" />
-                          </q-knob>
-                          <q-tooltip>
-                            {{ seasons[index]?.watched_percent }}
-                          </q-tooltip>
-                        </div>
-                        <div :class="['season-caption', 'absolute-bottom']">
-                          {{ season.name }}
-                        </div>
-                      </q-img>
-                    </router-link>
-                  </div>
-                </div>
-              </div>
+              <slot name="show-seasons" />
               <!-- SEASONS EPISODES -->
-              <div v-if="mType === 'season'">
-                <h1>
-                  {{ info.tmdb_data?.episodes.length }} Episodes
-                  <small v-if="unairedEpisodes > 0">
-                    ({{ unairedEpisodes }} unaired episodes)
-                  </small>
-                </h1>
-                <ItemCardContainer>
-                  <ItemCard
-                    episode
-                    v-for="episode in info.tmdb_data?.episodes"
-                    :key="episode.name"
-                    v-show="isBeforeToday(episode.air_date)"
-                    :title="episodeTitle(episode)"
-                    :poster="episode.backdrop.backdrop_sm"
-                    :overview="episode.overview"
-                    :backdrop="episode.backdrop.backdrop_lg"
-                    @click="handleEpisodeClick(episode)"
-                  />
-                </ItemCardContainer>
-              </div>
+              <slot name="season-episode-list" />
               <Actors
                 v-if="screenGreaterThan.sm === false && info.actors?.length > 0"
                 :actors="info.actors"
                 horizontal
               />
-              <Reviews :reviews="info.reviews" :reviewCount="info.comment_count" />
+              <Reviews class="q-mt-lg" :reviews="info.reviews" :reviewCount="info.comment_count" />
             </div>
           </div>
         </div>
@@ -334,9 +265,6 @@ import { useStore } from '@/store/index';
 import Actors from '@/components/Actors.vue';
 import Rating from '@/components/Rating.vue';
 import Reviews from '@/components/Reviews.vue';
-import ItemCard from '@/components/ItemCard.vue';
-import ItemCardContainer from '@/components/ItemCardContainer.vue';
-import MovieCollection from '@/components/MovieCollection.vue';
 // assets
 import * as trailerErrorPic from '@/assets/trailer-error.jpg';
 
@@ -346,9 +274,6 @@ export default {
     Reviews,
     Rating,
     YoutubeIframe,
-    ItemCard,
-    ItemCardContainer,
-    MovieCollection,
   },
   name: 'detailsTemplate',
   props: {
@@ -400,33 +325,14 @@ export default {
       trailerHasError: ref(false),
       trailerErrorBack: trailerErrorPic.default,
       seeMoreDetails: ref(false),
-      seasons: ref(null),
     };
   },
   created() {
     this.store.updateMenuVisible(false);
+    this.store.updateFilter({ label: null, value: null });
 
     this.trailerUrl = this.info.trailer?.split('v=')[1]; // eslint-disable-line
 
-    if (this.mType === 'show') {
-      // move specials to end of array
-      this.seasons = [...this.info.tmdb_data.seasons];
-      if (this.seasons[0].name.toLowerCase() === 'specials') {
-        const specials = this.seasons.shift();
-        this.seasons.push(specials);
-      }
-      // set watched progress for each season
-      this.info.watched_progress?.seasons.forEach((season, index) => {
-        const delay = season.number > 1 ? season.number * 200 + 500 : 500;
-        this.seasons[index].watched_progress = 0;
-        setTimeout(() => {
-          this.seasons[index].watched_progress = season.completed / season.aired;
-          this.seasons[
-            index
-          ].watched_percent = `${season.completed} out of ${season.aired} watched`;
-        }, delay);
-      });
-    }
     // for animation purposes
     if (this.info?.watched_progress) {
       setTimeout(() => {
@@ -464,18 +370,6 @@ export default {
         },
       };
     },
-    unairedEpisodes() {
-      let count = 0;
-      this.info.tmdb_data?.episodes.forEach((episode) => {
-        if (new Date(episode.air_date) > new Date()) count += 1;
-      });
-      return count;
-    },
-    seasonLength() {
-      return this.info.tmdb_data.seasons.filter(
-        (season) => season.name.toLowerCase() !== 'specials'
-      ).length;
-    },
     watchedPercent() {
       return `${this.info.watched_progress?.completed} of ${this.info.watched_progress?.aired} episodes watched`;
     },
@@ -485,6 +379,10 @@ export default {
               linear-gradient(to right    , rgba(0,0,0,.5), rgba(0,0,0,.2) 70%, rgba(0,0,0,0)),
               url(${this.info?.backdrop.backdrop_lg})`;
     },
+    technicalDetailsFiltered() {
+      // filter out null values
+      return this.technicalDetails.filter((item) => item.value);
+    },
     screenGreaterThan() {
       return this.$q.screen.gt;
     },
@@ -493,22 +391,11 @@ export default {
     },
   },
   methods: {
-    isBeforeToday(episodeDate) {
-      return new Date(episodeDate) < new Date();
-    },
     formattedDateTime(wDate) {
       return `${dayjs(wDate).format('MMM DD, YYYY')} at ${dayjs(wDate).format('h:mma')}`;
     },
     truncateDetails(details) {
       return this.seeMoreDetails ? details : details.split(',', 2).toString();
-    },
-    episodeTitle(episode) {
-      return `${episode.season_number}x${episode.episode_number.toString().padStart(2, 0)} ${
-        episode.name
-      }`;
-    },
-    handleEpisodeClick(item) {
-      this.$emit('episodeClick', item);
     },
     trailerReady(event) {
       event.target.playVideo();
@@ -542,6 +429,7 @@ export default {
 
 h1 {
   font-size: 18px;
+  margin-top: 20px;
 }
 button {
   font-weight: 600;
@@ -556,13 +444,14 @@ button {
   & > div {
     overflow-x: hidden;
   }
-  & .show-logo {
+  & .clear-logo {
     width: 100%;
     width: 250px;
     height: 97px;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
   }
 }
-.titles {
+.break {
   word-break: break-word;
 }
 .sub-title {
@@ -614,7 +503,7 @@ button {
 }
 .info {
   flex-wrap: wrap;
-  & > div {
+  & > div:not(:last-child) {
     margin-right: $space-md;
   }
   & span {
@@ -665,29 +554,6 @@ button {
   margin-right: 5px;
   &:last-child {
     margin-right: 0;
-  }
-}
-.seasons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 25px;
-  & :deep(.q-img) {
-    border-radius: 5px;
-  }
-  & .season-caption {
-    font-size: 0.85em;
-    padding: 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  & .season-watched {
-    padding: 5px;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    border-radius: 5px;
   }
 }
 .technical-details {

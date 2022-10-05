@@ -8,7 +8,51 @@
     :technicalDetails="arrDetails"
     :linkIds="info.ids"
     mType="show"
-  />
+  >
+    <template #show-seasons>
+      <div class="q-mt-lg">
+        <h2>
+          {{ seasonLength }}
+          {{ seasonLength > 1 ? 'Seasons' : 'Season' }}
+        </h2>
+        <div class="seasons">
+          <div v-for="(season, index) in seasons" :key="season.id">
+            <router-link
+              class="relative-position"
+              :to="{
+                name: 'season-details',
+                params: { show: $route.params.show, season: season.season_number },
+              }"
+            >
+              <q-img width="150px" :ratio="1 / 1.5" :src="season.poster_path" :alt="season.name">
+                <div v-if="user && season.name.toLowerCase() !== 'specials'" class="season-watched">
+                  <q-knob
+                    readonly
+                    :max="1"
+                    :model-value="seasons[index]?.watched_progress"
+                    show-value
+                    size="30px"
+                    :thickness="0.2"
+                    color="secondary"
+                    track-color="grey-9"
+                    class="text-white"
+                  >
+                    <q-icon name="check_circle_outline" size="xs" color="positive" />
+                  </q-knob>
+                  <q-tooltip>
+                    {{ seasons[index]?.watched_percent }}
+                  </q-tooltip>
+                </div>
+                <!-- <div :class="['season-caption', 'absolute-bottom']">
+                  {{ season.name }}
+                </div> -->
+              </q-img>
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </template>
+  </DetailsTemplate>
 </template>
 
 <script>
@@ -29,7 +73,9 @@ export default {
     return {
       info: ref({}),
       arrDetails: ref([]),
+      seasons: ref(null),
       loaded: ref(false),
+      user: ref(JSON.parse(localStorage.getItem('trakt-vue-user'))?.user),
       store,
     };
   },
@@ -55,6 +101,11 @@ export default {
     }
   },
   computed: {
+    seasonLength() {
+      return this.info.tmdb_data.seasons.filter(
+        (season) => season.name.toLowerCase() !== 'specials'
+      ).length;
+    },
     languageListString() {
       const langs = this.info.tmdb_data.spoken_languages;
       let strLang = '';
@@ -96,18 +147,20 @@ export default {
         { label: 'network', value: this.info.network },
         { label: 'languages', value: this.languageListString },
       ];
-      // // add to episode watched array
-      // if (this.info.watched_progress?.completed > 0) {
-      //   const watched = localStorage.getItem('trakt-vue-watched-episodes')
-      //     ? JSON.parse(localStorage.getItem('trakt-vue-watched-episodes'))
-      //     : [];
-      //   if (watched[this.info.show.ids.slug]) {
-      //     watched[this.info.show.ids.slug] = this.info.watched_progress;
-      //   } else {
-      //     watched.push({ [this.info.show.ids.slug]: this.info.watched_progress });
-      //   }
-      //   localStorage.setItem('trakt-vue-watched-episodes', JSON.stringify(watched));
-      // }
+      this.seasons = [...this.info.tmdb_data.seasons];
+      // set watched progress for each season and add delay (animation)
+      this.info.watched_progress?.seasons.forEach((season, index) => {
+        if (this.seasons[index]) {
+          const delay = season.number > 1 ? season.number * 200 + 500 : 500;
+          this.seasons[index].watched_progress = 0;
+          setTimeout(() => {
+            this.seasons[index].watched_progress = season.completed / season.aired;
+            this.seasons[
+              index
+            ].watched_percent = `${season.completed} out of ${season.aired} watched`;
+          }, delay);
+        }
+      });
 
       this.store.updateLoading(true);
     },
@@ -121,67 +174,27 @@ export default {
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
 
-h1 {
-  font-weight: 400;
-}
-.background {
-  background-size: cover;
-  background-position: center;
-  background-color: transparent;
-  height: 100%;
-  border-radius: 5px;
-  overflow: hidden;
-  & .show-logo {
-    width: 100%;
-    max-width: 250px;
-    height: 97px;
-  }
-}
-.details-container {
-  padding: 0 $space-sm $space-sm 0;
+.seasons {
   display: flex;
-  height: 100%;
-  & > div:first-child {
-    flex: 1;
-  }
-}
-.poster {
-  width: 50%;
-  min-width: 200px;
-  max-width: 400px;
-  & > div {
-    border-radius: 5px;
-    overflow: hidden;
-  }
-}
-.ratings {
-  display: flex;
-  & > div {
-    display: flex;
-    align-items: center;
-  }
-  & > div > img {
-    width: 35px;
-  }
-  & > div > div:nth-child(2) {
-    font-size: 24px;
-    margin: 0 10px 0 10px;
-  }
-}
-.certification {
-  border: 1px solid $secondary;
-  color: $secondary;
-  border-radius: 3px;
-  padding: 3px 5px;
-  font-size: 0.75em;
-}
-.show-info {
   flex-wrap: wrap;
-  & > div {
-    margin-right: $space-md;
+  gap: 10px;
+  margin-bottom: 25px;
+  & :deep(.q-img) {
+    border-radius: 5px;
   }
-  & span {
-    @include darkText;
+  & .season-caption {
+    font-size: 0.85em;
+    padding: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  & .season-watched {
+    padding: 5px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    border-radius: 5px;
   }
 }
 </style>

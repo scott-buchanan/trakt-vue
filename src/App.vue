@@ -4,105 +4,80 @@
     class="layout full-height"
     :style="{ backgroundImage: `url(${backgroundImg})` }"
   >
-    <HeaderBar :page="store.$state.page" />
+    <Header :page="store.$state.page" />
     <q-drawer
+      v-if="$q.screen.xs === false"
       show-if-above
-      :breakpoint="-1"
+      :breakpoint="1"
       v-model="drawer"
       :overlay="false"
-      :mini="$q.screen.xs"
-      class="app-drawer q-pa-sm"
+      class="app-drawer"
       :width="200"
       persistent
       dark
     >
       <div>
         <q-img
-          :src="myInfo?.account.cover_image ? myInfo?.account.cover_image : defaultBack"
-          :class="{ 'avatar-mini': isSmall }"
-          :style="`height: ${$q.screen.xs ? '50px' : '150px'}`"
+          :src="
+            store.myInfo?.account.cover_image
+              ? `${store.myInfo?.account.cover_image}.webp`
+              : defaultBack
+          "
+          style="height: 150px"
           referrerpolicy="no-referrer"
         >
-          <div v-if="myInfo" class="absolute-top-right bg-transparent z-top">
-            <q-btn icon="logout" dense rounded flat @click="logout" />
-          </div>
-          <div v-if="myInfo" class="absolute-bottom bg-transparent">
-            <q-avatar :size="$q.screen.xs ? '30px' : '56px'" class="q-mb-sm">
+          <div v-if="store.myInfo" class="absolute-bottom bg-transparent">
+            <q-avatar size="60px" class="q-mb-sm">
               <q-img
-                :src="myInfo?.user.images.avatar.full"
-                :alt="myInfo?.user.name"
+                :src="store.myInfo?.user.images.avatar.full"
+                :alt="store.myInfo?.user.name"
                 referrerpolicy="no-referrer"
               />
             </q-avatar>
-            <div class="gt-xs">
-              <div class="text-weight-bold">{{ myInfo?.user.name }}</div>
+            <div>
+              <div class="text-weight-bold">{{ store.myInfo?.user.name }}</div>
               <div>
-                <a :href="`https://trakt.tv/users/${myInfo?.user.username}`" target="blank">
-                  @{{ myInfo?.user.username }}
+                <a :href="`https://trakt.tv/users/${store.myInfo?.user.username}`" target="blank">
+                  @{{ store.myInfo?.user.username }}
                 </a>
               </div>
             </div>
           </div>
-          <div v-else class="login">
-            <q-btn color="white" style="background: rgba(0, 0, 0, 0.8)" flat @click="goToLogin">
-              <q-avatar size="20px">
-                <img :src="traktIcon" alt="" />
-              </q-avatar>
-              <div class="q-pl-sm">Login</div>
-            </q-btn>
-          </div>
         </q-img>
 
-        <!-- <q-list dark>
-          <q-item-label header>TV Shows</q-item-label>
-
-          <q-item dense clickable color="secondary">
-            <q-item-section avatar>
-              <q-icon name="tv" />
-            </q-item-section>
-            <q-item-section class="gt-xs"> Trending </q-item-section>
-          </q-item>
-          <q-item dense clickable color="secondary">
-            <q-item-section avatar>
-              <q-icon name="tv" />
-            </q-item-section>
-            <q-item-section class="gt-xs"> Watched History </q-item-section>
-          </q-item>
-          <q-item dense clickable color="secondary">
-            <q-item-section avatar>
-              <q-icon name="tv" />
-            </q-item-section>
-            <q-item-section class="gt-xs"> Recommended by me </q-item-section>
-          </q-item>
-        </q-list> -->
         <q-list dark>
+          <q-item-label header>TV Shows</q-item-label>
           <q-item
+            v-for="link in filterOptions.show"
+            :key="link"
+            dense
             clickable
-            active-class="bg-secondary text-dark"
-            :active="store.filterType === 'show'"
-            @click="goToPage('show')"
+            color="secondary"
+            active-class="bg-secondary"
+            :active="store.filter?.value === link.value && store.filterType === 'show'"
+            @click="handleMenuClick(link, 'show')"
           >
-            <q-item-section avatar>
-              <q-icon name="tv" />
-            </q-item-section>
-            <q-item-section class="gt-xs"> TV Shows </q-item-section>
-          </q-item>
-
-          <q-item
-            clickable
-            active-class="bg-secondary text-dark"
-            :active="store.filterType === 'movie'"
-            @click="goToPage('movie')"
-          >
-            <q-item-section avatar>
-              <q-icon name="movie" />
-            </q-item-section>
-
-            <q-item-section class="gt-xs"> Movies </q-item-section>
+            <q-item-section dark>{{ link.label }} </q-item-section>
           </q-item>
         </q-list>
 
-        <div class="gt-xs bottom-links text-white">
+        <q-list dark>
+          <q-item-label header>Movies</q-item-label>
+          <q-item
+            v-for="link in filterOptions.movie"
+            :key="link"
+            dense
+            clickable
+            color="secondary"
+            active-class="bg-secondary"
+            :active="store.filter?.value === link.value && store.filterType === 'movie'"
+            @click="handleMenuClick(link, 'movie')"
+          >
+            <q-item-section dark>{{ link.label }} </q-item-section>
+          </q-item>
+        </q-list>
+
+        <div class="bottom-links text-white">
           <div>Powered by</div>
           <div>
             <a href="https://vuejs.org/" target="blank">
@@ -123,7 +98,7 @@
     </q-drawer>
 
     <q-page-container class="full-height">
-      <div class="loader" v-if="!loaded">
+      <div class="loader" v-if="!store.loaded">
         <div class="full-height full-width">
           <loader-fingers />
         </div>
@@ -140,17 +115,16 @@ import { ref } from 'vue';
 import { useStore } from '@/store/index';
 // components
 import LoaderFingers from '@/components/LoaderFingers.vue';
-import HeaderBar from '@/components/Header.vue';
+import Header from '@/components/Header.vue';
 // api
 import { getAppBackgroundImg } from '@/api/tmdb';
 // assets
 import * as defaultImage from '@/assets/drawer-image-1.jpg';
-import * as traktIcon from '@/assets/trakt-icon-red.svg';
 
 export default {
   name: 'TraktVueApp',
   components: {
-    HeaderBar,
+    Header,
     LoaderFingers,
   },
   setup() {
@@ -158,51 +132,46 @@ export default {
     return {
       drawer: ref(true),
       store,
-      myInfo: ref(store.myInfo),
-      loaded: ref(false),
       defaultBack: defaultImage.default,
-      traktIcon: traktIcon.default,
       backgroundImg: ref(''),
     };
   },
   async created() {
-    // get updates from store
-    this.store.$subscribe((mutated, state) => {
-      this.loaded = state.loaded;
-      this.myInfo = state.myInfo;
-    });
-
     this.backgroundImg = await getAppBackgroundImg();
   },
   computed: {
-    isSmall() {
-      return this.$q.screen.xs;
+    filterOptions() {
+      const options = { ...this.store.filterOptions };
+      if (!this.store.myInfo) {
+        Object.entries(this.store.filterOptions).forEach((mType) => {
+          options[mType[0]] = mType[1].filter((item) => item.auth === false);
+        });
+      }
+      return options;
     },
   },
   methods: {
+    handleMenuClick(item, filterType) {
+      this.store.updateLoading(false);
+      this.store.updateFilterType(filterType);
+      this.store.updatePage(1);
+      this.store.updateFilter(item);
+      this.$router.push({
+        path: filterType === 'movie' ? `/movie/${item.value}` : `/tv/${item.value}`,
+      });
+    },
     goToPage(page) {
+      this.store.updateLoading(false);
       const pathName = page === 'movie' ? 'movie' : 'tv';
       this.store.updateFilterType(page);
-      this.store.updateLoading(false);
       this.$router.push({ name: pathName });
-    },
-    goToLogin() {
-      window.location =
-        'https://trakt.tv/oauth/authorize?response_type=code&client_id=8b333edc96a59498525b416e49995b338e2c53a03738becfce16461c1e1086a3&redirect_uri=http://localhost:8080';
-    },
-    logout() {
-      // localStorage.removeItem('trakt-vue-user');
-      // localStorage.removeItem('trakt-vue-token');
-      // localStorage.removeItem('trakt-vue-movie-ratings');
-      localStorage.clear();
-      this.$router.go();
     },
   },
 };
 </script>
 
 <style lang="scss">
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&&display=swap');
 @import '@/css/quasar.variables.scss';
 
 * {
@@ -259,47 +228,35 @@ button {
 .scroll-area {
   height: calc(100% - 150px);
 }
-.app-drawer > div {
-  display: flex;
-  flex-direction: column;
-  & .login {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    text-align: center;
-    & > button {
-      top: calc(50% - 15px);
-    }
-  }
-  & .avatar-mini {
-    text-align: center;
-    & > div > div {
-      padding: 0;
-    }
-  }
-  & .bottom-links {
-    flex-grow: 1;
-    width: 100%;
-    font-size: 0.8em;
-    text-align: right;
+.app-drawer {
+  padding: $space-sm;
+  padding-right: 0;
+  & > div {
     display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    & > div:first-child {
+    flex-direction: column;
+    & .bottom-links {
       flex-grow: 1;
-      margin-right: 15px;
-      padding-bottom: 7px;
-    }
-    & > div > a {
-      &:first-child > img {
-        margin-left: -22px;
-        width: 112px;
+      width: 100%;
+      font-size: 0.8em;
+      text-align: right;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      & > div:first-child {
+        flex-grow: 1;
+        margin-right: 15px;
+        padding-bottom: 7px;
       }
-      & > img {
-        width: 90px;
-        margin: 0 7px 7px 0;
-        display: block;
+      & > div > a {
+        &:first-child > img {
+          margin-left: -22px;
+          width: 112px;
+        }
+        & > img {
+          width: 90px;
+          margin: 0 7px 7px 0;
+          display: block;
+        }
       }
     }
   }
@@ -314,7 +271,7 @@ button {
   }
 }
 .loader {
-  padding: 0 $space-sm $space-sm 0;
+  padding: 0 $space-sm $space-sm $space-sm;
   height: 100%;
   & > div {
     @include background-style;

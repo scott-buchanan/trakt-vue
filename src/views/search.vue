@@ -1,19 +1,37 @@
 <template>
   <div v-if="loaded" class="search-container">
     <div>
-      <h1 class="search-heading">Search: {{ searchTerm }}</h1>
+      <div class="flex items-center q-mb-sm q-mt-xs">
+        <q-icon name="task_alt" size="24px" class="q-mr-xs" />
+        <h1 class="search-heading">Search:</h1>
+        <q-chip
+          v-for="term in searchTerm.split(' ')"
+          :key="term"
+          :label="term"
+          size="md"
+          color="secondary"
+          class="text-capitalize"
+          :removable="searchTerm.split(' ').length > 1"
+          outline
+          square
+          :ripple="false"
+          @remove="handleRemoveTerm(term)"
+        />
+      </div>
       <q-scroll-area :thumb-style="{ opacity: 0.5 }" class="scroll-container">
-        <ItemCardContainer>
+        <ItemCardContainer v-if="searchResults?.length > 0">
           <ItemCard
             v-for="result in searchResults"
             :key="result.id"
             :title="result.media_type === 'tv' ? result.name : result.title"
+            :mediaType="result.media_type === 'tv' ? 'tv' : 'movie'"
             :poster="result.poster_path"
             :backdrop="result.backdrop_path"
             :overview="result.overview"
             @click="goToDetails(result)"
           />
         </ItemCardContainer>
+        <div v-else>No results found for "{{ searchTerm }}"</div>
       </q-scroll-area>
     </div>
   </div>
@@ -63,18 +81,13 @@ export default {
       this.searchPage = state.searchPage;
       this.loaded = state.loaded;
     });
-    this.store.updateLoading(false);
     this.searchTerm = this.$route.query.term;
-    this.searchResults = await getSearchResults(this.$route.query.term, this.searchPage);
-    // simulate load time
-    setTimeout(() => {
-      this.store.updateLoading(true);
-    }, 1000);
+    this.getData();
   },
   async updated() {
     if (this.$route.query.term !== this.searchTerm) {
       this.searchTerm = this.$route.query.term;
-      this.searchResults = await getSearchResults(this.$route.query.term, this.searchPage);
+      this.getData();
     }
   },
   computed: {
@@ -83,6 +96,13 @@ export default {
     },
   },
   methods: {
+    async getData() {
+      this.store.updateLoading(false);
+      this.searchResults = await getSearchResults(this.$route.query.term, this.searchPage);
+      setTimeout(() => {
+        this.store.updateLoading(true);
+      }, 1000);
+    },
     async goToDetails(item) {
       const mType = item.media_type === 'tv' ? 'show' : 'movie';
       this.$router.push({
@@ -91,6 +111,13 @@ export default {
           [mType]: item.ids.slug,
         },
       });
+    },
+    handleRemoveTerm(term) {
+      this.searchTerm = this.searchTerm
+        .split(' ')
+        .filter((word) => word !== term)
+        .join(' ');
+      this.$router.push({ name: 'search', query: { term: this.searchTerm } });
     },
     changePage() {
       this.loadData();
@@ -111,16 +138,16 @@ export default {
 <style lang="scss" scoped>
 @import '@/css/quasar.variables.scss';
 
-h2 {
-  font-size: 1rem !important;
+h1 {
+  font-size: 1.5rem;
 }
 .search-heading {
-  height: 40px;
+  margin: 0 $space-sm 0 0;
   @include text-ellipsis;
 }
 .search-container {
   height: 100%;
-  padding: 0 $space-sm $space-sm 0;
+  padding: 0 $space-sm $space-sm $space-sm;
   width: 100%;
   max-width: 100%;
   & > div {
