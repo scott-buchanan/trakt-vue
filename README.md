@@ -1,3 +1,6 @@
+# UPDATE
+**This repo is now deprecated**. I am continuing development on this but changing my stack. Instead of using Vue CLI/JavaScript I will be using Vite/TypeScript. New repo [here](https://github.com/scott-buchanan/trakt-vue-ts). 
+
 # Vue 3 with Trakt, TMDB, OMDb and fanart.tv 
 
 Personal project to get more familiar with Vue 3. Using Trakt, TMDB, fanart, OMDb API's.
